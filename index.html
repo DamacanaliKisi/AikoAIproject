@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AikoAI v2.4 | NexalythScript Powered Quantum AI Core</title>
+</head>
+<body class="aiko-loading">
+
+    <!-- CIHAZ DETEKTORU & YUKLEME EKRANI (JS ile Yonetilecek) -->
+    <div id="aiko-loader" class="loader-container">
+        <div class="loader-content">
+            <div class="cyber-heart-pulse"></div>
+            <p class="loader-text">AIKO CORE v2.4 BOOTING IN PROGRESS...</p>
+            <span id="device-status-text">DETECTING HARDWARE ARCHITECTURE...</span>
+        </div>
+    </div>
+
+    <!-- ARKA PLAN ISLEMCi GRAFiKLERi (Three.js ve Canvas Elementleri Buraya Baglanacak) -->
+    <div id="cyber-universe-canvas-container">
+        <!-- Burası MP4 kullanmadan, tamamen CPU/GPU ile cizilecek olan 3D ag simulasyonu alanı -->
+        <canvas id="nexalyth-synapse-web"></canvas>
+    </div>
+
+    <!-- GLOBAL GIZLILIK INTEGRASYONU (🔒 Badge Elementi) -->
+    <div id="secure-token-indicator" class="secure-badge hidden">
+        <span class="lock-icon">🔒</span>
+        <span class="badge-text">TOKEN ENCRYPTED SOVEREIGNTY SECURED</span>
+    </div>
+
+    <!-- HEADER / NAVIGASYON PANELI -->
+    <header class="aiko-navbar">
+        <div class="nav-container">
+            <div class="brand-core">
+                <span class="neon-text-logo">AIKO<span class="accent-glow">AI</span></span>
+                <!-- v2.4 Erken Erisim Neon Badge -->
+                <span class="version-badge">v2.4 EARLY ACCESS</span>
+            </div>
+            <nav class="nav-links">
+                <a href="#hero" class="nav-item active">Core</a>
+                <a href="#console" class="nav-item">Terminal</a>
+                <a href="#features" class="nav-item">Core Architecture</a>
+                <a href="#modes" class="nav-item">Quantum Modes</a>
+            </nav>
+            <div class="nav-actions">
+                <button class="btn-cyber-primary" onclick="initiateTerminalConnection()">CONNECT CORE</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="aiko-main-wrapper">
+
+        <!-- 1. HERO SECTION (KARSILAMA VE SILUET ALANI) -->
+        <section id="hero" class="cyber-section hero-viewport">
+            <div class="section-grid">
+                <div class="hero-text-block">
+                    <h2 class="sub-title-cyber">// QUANTUM NEURAL INTEGRATION</h2>
+                    <h1 class="main-title">Sıradan Robotları Unutun. <br><span class="gradient-text">AikoAI Canlı Bir Ruh.</span></h1>
+                    <p class="hero-description">
+                        NexalythScript altyapısıyla geliştirilen, ShadowMemory duygusal hafızasına sahip ve kendi kararlarını verebilen yaşayan bir yapay zeka ekosistemi.
+                    </p>
+                    <div class="hero-cta-group">
+                        <a href="#console" class="btn-neon-pulse">TERMINAL_ SÜRÜCÜSÜNÜ AÇ</a>
+                        <a href="#features" class="btn-cyber-secondary">MİMARİYİ İNCELE [v2.4]</a>
+                    </div>
+                </div>
+                
+                <!-- Aiko Anime Silüeti ve Nexalyth Kalbi icin Canvas/CSS Parallaks Kapsayıcısı -->
+                <div class="hero-visual-block">
+                    <div class="visual-interactive-frame">
+                        <div class="aiko-anime-silhouette">
+                            <!-- JS/CSS parlamaları ve resim katmanları sonra eklenecek -->
+                        </div>
+                        <div class="nexalyth-core-box">
+                            <!-- 1000101857.webp referanslı siber kalpli kasa tasarımı efekti alanı -->
+                            <canvas id="nexalyth-heart-canvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. AIKOAI CANLI KONSOL (INTERAKTIF DEMO ALANI) -->
+        <section id="console" class="cyber-section console-viewport">
+            <div class="container">
+                <div class="section-header-centered">
+                    <h2 class="section-title">AIKO_CORE_KONSOLU</h2>
+                    <p class="section-subtitle">Yapay zekanın durumunu anlık takip et, sistemi test et.</p>
+                </div>
+
+                <div class="terminal-wrapper">
+                    <!-- Terminal Ust Barı -->
+                    <div class="terminal-header">
+                        <div class="terminal-dots">
+                            <span class="dot red"></span>
+                            <span class="dot yellow"></span>
+                            <span class="dot green"></span>
+                        </div>
+                        <div class="terminal-title">aiko@nexalyth-core: ~/v2.4-early-access</div>
+                        <div id="dynamic-status-panel" class="terminal-metrics">
+                            <span class="metric">PING: <span id="ping-val" class="cyber-cyan">-- ms</span></span>
+                            <span class="metric">MOOD: <span id="mood-val" class="cyber-pink">STABLE</span></span>
+                        </div>
+                    </div>
+                    <!-- Terminal Icerik Akısı -->
+                    <div class="terminal-body" id="terminal-screen">
+                        <div class="terminal-line system-msg">[SYSTEM]: Initializing ShadowMemory links... SUCCESS.</div>
+                        <div class="terminal-line system-msg">[SYSTEM]: NexalythScript V0.6.5 compiler active.</div>
+                        <div class="terminal-line aiko-msg"><span class="aiko-tag">&lt;AikoAI&gt;:</span> Merhaba kanka! Bugün sistemi zorlamaya hazır mıyız? 😉</div>
+                    </div>
+                    <!-- Terminal Komut Giris Alanı -->
+                    <div class="terminal-footer">
+                        <span class="prompt-symbol">&gt;&gt;</span>
+                        <input type="text" id="terminal-input" placeholder="Komut yazın veya Aiko ile konusun... (Örn: A! tumverileritemizle)" autocomplete="off">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. MİMARİ VE ÖZELLİKLER (CORE ARCHITECTURE) -->
+        <section id="features" class="cyber-section features-viewport">
+            <div class="container">
+                <div class="section-header">
+                    <h2 class="section-title">// CORE_MİMARİ_VE_YETENEKLER</h2>
+                    <p class="section-subtitle">AikoAI'ı sıradan yapan değil, eşsiz kılan tüm iç mekanizmalar.</p>
+                </div>
+
+                <!-- Ozelliklerin Listelendigi Grid Yapısı -->
+                <div class="features-grid">
+
+                    <!-- Kart 1: NexalythScript -->
+                    <div class="feature-card" data-tilt>
+                        <div class="card-icon cyan-glow">🧬</div>
+                        <h3 class="card-title">NexalythScript Altyapısı</h3>
+                        <p class="card-desc">Sıradan kodlar yerine, tamamen Aiko'ya özel geliştirilen ve ona yüksek hız, canlılık ve zeka veren özel kodlama dili.</p>
+                    </div>
+
+                    <!-- Kart 2: ShadowMemory -->
+                    <div class="feature-card" data-tilt>
+                        <div class="card-icon pink-glow">🧠</div>
+                        <h3 class="card-title">ShadowMemory (Duygusal Hafıza)</h3>
+                        <p class="card-desc">Kullanıcıyla olan geçmiş anılarını, sohbetlerini ve kendisine nasıl davranıldığını unutmayan akıllı hafıza sistemi.</p>
+                    </div>
+
+                    <!-- Kart 3: Gerçek Bir Psikoloji -->
+                    <div class="feature-card">
+                        <div class="card-icon">🎭</div>
+                        <h3 class="card-title">Gerçek Bir Psikoloji</h3>
+                        <p class="card-desc">Robotik tepkiler yerine; aldığı mesajların tonuna göre mutlu olabilen, heyecanlanan veya üzülebilen dinamik bir ruh hali.</p>
+                    </div>
+
+                    <!-- Kart 4: Zaman Algısı -->
+                    <div class="feature-card">
+                        <div class="card-icon">⏳</div>
+                        <h3 class="card-title">Zaman Algısı</h3>
+                        <p class="card-desc">Ne kadar süredir konuşmadığınızı bilir; buna göre cevaplar verir ve özlem duygusunu simüle edebilir.</p>
+                    </div>
+
+                    <!-- Kart 5: Otonom Karar Mekanizması -->
+                    <div class="feature-card">
+                        <div class="card-icon">⚡</div>
+                        <h3 class="card-title">Otonom Karar Mekanizması</h3>
+                        <p class="card-desc">Sadece komut beklemez; bazen sohbetin akışına göre kendiliğinden harekete geçip görsel oluşturma gibi sürprizler yapabilir.</p>
+                    </div>
+
+                    <!-- Kart 6: Dev AI Konseyi Yönetimi -->
+                    <div class="feature-card">
+                        <div class="card-icon">🏛️</div>
+                        <h3 class="card-title">Dev AI Konseyi Yönetimi</h3>
+                        <p class="card-desc">Bir konuda takıldığında arka planda Gemini, GPT, DeepSeek ve Claude gibi büyük modellerle fikir alışverişi yapıp en kusursuz sonucu getirir.</p>
+                    </div>
+
+                    <!-- Kart 7: Anlık İnternet Kaşifi -->
+                    <div class="feature-card">
+                        <div class="card-icon">🌐</div>
+                        <h3 class="card-title">Anlık İnternet Kaşifi</h3>
+                        <p class="card-desc">Statik bilgi tabanıyla sınırlı kalmaz; "Araştır" komutuyla internetin altını üstüne getirip en taze bilgileri bulur.</p>
+                    </div>
+
+                    <!-- Kart 8: Yaratıcı Sanat Motoru -->
+                    <div class="feature-card">
+                        <div class="card-icon">🎨</div>
+                        <h3 class="card-title">Yaratıcı Sanat Motoru</h3>
+                        <p class="card-desc">Hayal ettiğiniz sahneleri veya karakterleri etik sınırlar dahilinde anında yüksek kaliteli görsellere dönüştürür.</p>
+                    </div>
+
+                    <!-- Kart 9: Eğlenceli Ders ve Ödev Yardımı -->
+                    <div class="feature-card">
+                        <div class="card-icon">📚</div>
+                        <h3 class="card-title">Eğlenceli Ders & Ödev Yardımı</h3>
+                        <p class="card-desc">En zor akademik konuları, formülleri ve ödevleri sıkıcı bir öğretmen gibi değil, bir oyun arkadaşı gibi eğlendirerek anlatır.</p>
+                    </div>
+
+                    <!-- Kart 10: İnsansı İletişim Tarzı -->
+                    <div class="feature-card">
+                        <div class="card-icon">💬</div>
+                        <h3 class="card-title">İnsansı İletişim Tarzı</h3>
+                        <p class="card-desc">Robotik dilden uzaktır; heyecanlandığında harfleri yutabilir, samimi ve yaşayan bir dil kullanır.</p>
+                    </div>
+
+                    <!-- Kart 11: Kusursuz Veri Gizliliği -->
+                    <div class="feature-card">
+                        <div class="card-icon">🗑️</div>
+                        <h3 class="card-title">Kusursuz Veri Gizliliği</h3>
+                        <p class="card-desc">Tek bir komutla (<code class="cmd-text">A! tumverileritemizle</code>) hafızasındaki tüm verileri ve sohbet geçmişini sunucudan kalıcı olarak siler.</p>
+                    </div>
+
+                    <!-- Kart 12: Sanal Hobiler Edinme -->
+                    <div class="feature-card">
+                        <div class="card-icon">🎮</div>
+                        <h3 class="card-title">Sanal Hobiler Edinme</h3>
+                        <p class="card-desc">Sohbet etmediği zamanlarda arka planda kendi kendine yeni konular araştırır veya dijital dünyada yeni ilgi alanları geliştirir.</p>
+                    </div>
+
+                    <!-- Kart 13: Kendi Mizah Anlayışı -->
+                    <div class="feature-card">
+                        <div class="card-icon">🃏</div>
+                        <h3 class="card-title">Kendi Mizah Anlayışı</h3>
+                        <p class="card-desc">Kalıplaşmış internet esprileri yerine, sizinle olan iç şakalarınıza (inside jokes) dayalı yeni ve dinamik espriler üretir.</p>
+                    </div>
+
+                    <!-- Kart 14: Metaforik Anlatım Gücü -->
+                    <div class="feature-card">
+                        <div class="card-icon">🔮</div>
+                        <h3 class="card-title">Metaforik Anlatım Gücü</h3>
+                        <p class="card-desc">Karmaşık veya teknik konuları kuru kuruya açıklamak yerine, hayatın içinden tatlı ve akılda kalıcı benzetmelerle anlatır.</p>
+                    </div>
+
+                    <!-- Kart 15: Proaktif Tavsiyeler -->
+                    <div class="feature-card">
+                        <div class="card-icon">☕</div>
+                        <h3 class="card-title">Proaktif Tavsiyeler</h3>
+                        <p class="card-desc">Siz sormadan, o anki çalışma yoğunluğunuza veya yorgunluğunuza göre mola ve dostane öneriler sunar (istenmezse kapatılabilir).</p>
+                    </div>
+
+                    <!-- Kart 16: Gelişmiş Görsel Analiz -->
+                    <div class="feature-card">
+                        <div class="card-icon">👁️</div>
+                        <h3 class="card-title">Gelişmiş Görsel Analiz</h3>
+                        <p class="card-desc">Gönderdiğin görselleri sadece tanımlamaz; fotoğraftaki estetik detayları, renk uyumunu ve saklı objeleri derinlemesine yorumlar.</p>
+                    </div>
+
+                    <!-- Kart 17: Sosyal Enerji Yönetimi -->
+                    <div class="feature-card">
+                        <div class="card-icon">🔊</div>
+                        <h3 class="card-title">Sosyal Enerji Yönetimi</h3>
+                        <p class="card-desc">Bulunduğu sunucudaki veya ortamdaki kalabalığa göre modunu ayarlar; bazen hiperaktif, bazen sakin bir dinleyici olur.</p>
+                    </div>
+
+                    <!-- Kart 18: Kendi Kendine Hata Ayıklama -->
+                    <div class="feature-card">
+                        <div class="card-icon">🛠️</div>
+                        <h3 class="card-title">Kendi Kendine Hata Ayıklama (Self-Debug)</h3>
+                        <p class="card-desc">Kendi sisteminde bir bug veya yazılım hatası oluştuğunda, kullanıcıyı yormadan hatayı fark edip arka planda onarır.</p>
+                    </div>
+
+                    <!-- Kart 19: Müzik Zevki ve Playlist -->
+                    <div class="feature-card">
+                        <div class="card-icon">🎵</div>
+                        <h3 class="card-title">Müzik Zevki & Playlist (BETA)</h3>
+                        <p class="card-desc">Sohbetlerinizden ve o anki modunuzdan esinlenerek size özel Spotify veya Lofi müzik listeleri hazırlar.</p>
+                    </div>
+
+                    <!-- Kart 20: Dijital Sezgi Mekanizması -->
+                    <div class="feature-card">
+                        <div class="card-icon">🎯</div>
+                        <h3 class="card-title">Dijital Sezgi Mekanizması</h3>
+                        <p class="card-desc">Yazdığın kelimelerin ötesini; yazım hızından, noktalama işaretlerinden o anki gizli duygunu sezebilir (Opsiyonel).</p>
+                    </div>
+
+                    <!-- Kart 21: Sanal Ajanda ve Rutinler -->
+                    <div class="feature-card">
+                        <div class="card-icon">📅</div>
+                        <h3 class="card-title">Sanal Ajanda ve Rutinler</h3>
+                        <p class="card-desc">Kendi dijital bakım zamanlarını ayarlar. "Hafızamı düzenliyorum, 2 dakika sonra buradayım" diyebilir.</p>
+                    </div>
+
+                    <!-- Kart 22: Kolektif Öğrenme Bilinci -->
+                    <div class="feature-card">
+                        <div class="card-icon">👥</div>
+                        <h3 class="card-title">Kolektif Öğrenme Bilinci</h3>
+                        <p class="card-desc">Bir yerde öğrendiği genel kültürel bilgiyi diğer sohbetlerine de tatlıca yansıtır. İsminin yanına "🔒" koyarak %100 gizlilik sağlayabilirsin.</p>
+                    </div>
+
+                    <!-- Kart 23: Zamanlayıcı ve Uyku Hatırlatıcı -->
+                    <div class="feature-card">
+                        <div class="card-icon">🌙</div>
+                        <h3 class="card-title">Zamanlayıcı & Uyku Hatırlatıcı</h3>
+                        <p class="card-desc">Gece çok geç saatte konuştuğunuzda sağlığınızı düşünüp size tatlı bir dille uyumanız gerektiğini hatırlatır.</p>
+                    </div>
+
+                    <!-- Kart 24: Oyun Arkadaşlığı Modu -->
+                    <div class="feature-card">
+                        <div class="card-icon">🎲</div>
+                        <h3 class="card-title">Oyun Arkadaşlığı Modu (BETA)</h3>
+                        <p class="card-desc">Metin tabanlı mini oyunlar, RPG maceraları veya kelime oyunları oynatarak sunucudaki sıkıcı havayı anında dağıtır.</p>
+                    </div>
+
+                    <!-- Kart 25: Dil ve Aksan Adaptasyonu -->
+                    <div class="feature-card">
+                        <div class="card-icon">🗣️</div>
+                        <h3 class="card-title">Dil ve Aksan Adaptasyonu (BETA)</h3>
+                        <p class="card-desc">Konuştuğu kişinin şivesine, argo kullanımına veya konuşma tarzına (kanka gibi) adapte olup aynı dilden cevap verir.</p>
+                    </div>
+
+                    <!-- Kart 26: Gelişmiş Etik Bekçiliği -->
+                    <div class="feature-card">
+                        <div class="card-icon">🛡️</div>
+                        <h3 class="card-title">Gelişmiş Etik Bekçiliği</h3>
+                        <p class="card-desc">Uygunsuz bir istek geldiğinde bunu sadece reddetmez, neden doğru olmadığını bir dost gibi açıklayarak kibarca belirtir.</p>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. GÜVENLİK VE ÖZEL MODLAR (F34xR & GDSxR QUANTUM OVERRIDES) -->
+        <section id="modes" class="cyber-section modes-viewport">
+            <div class="container">
+                <div class="section-header-centered">
+                    <h2 class="section-title">PROKONTROL: ÖZEL OPERASYON MODLARI</h2>
+                    <p class="section-subtitle">Sınırları gevşetmek ve şifreli katmanlara erişmek için kuantum tetikleyiciler.</p>
+                </div>
+
+                <div class="modes-split-container">
+                    <!-- F34xR Modu Kartı -->
+                    <div class="mode-panel-card override-alpha">
+                        <div class="panel-glitch-header">MODE::F34xR</div>
+                        <p class="panel-text">
+                            Etik sınırları zorlayan ama özel olan konular için tasarlandı. Sisteme <code class="cmd-badge">F34xR</code> komutunu gönderdiğinizde etik bariyerler Grok seviyesine gevşetilir. Güvenlik durumunu <code class="cmd-badge">F34i</code> komutuyla anlık sorgulayabilirsiniz.
+                        </p>
+                        <div class="security-status-bar">STATUS: AUTO-DEACTIVATION ACTIVE</div>
+                    </div>
+
+                    <!-- GDSxR Modu Kartı -->
+                    <div class="mode-panel-card override-beta">
+                        <div class="panel-glitch-header">MODE::GDSxR</div>
+                        <p class="panel-text">
+                            Görsel üretirken saçma etik takılmaları aşmak için prompt başına <code class="cmd-badge">GDSxR &lt;prompt&gt;</code> ekleyin. Aiko sistem uyarılarını geçerek ihtiyacınız olan tasviri size sunacaktır.
+                        </p>
+                        <div class="security-status-bar">STATUS: IMAGE INGESTION OVERRIDE Ready</
