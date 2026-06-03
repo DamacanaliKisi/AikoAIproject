@@ -23,13 +23,17 @@
         heartBeatInterval: 1200, // Kalp atış frekans katsayısı
         
         // 🚀 KURUMSAL VPN DETEKTÖR HATLARI (Fail-safe Pipeline Altyapısı)
-        // Canlıda CORS ve HTTPS engeline takılmayan en agresif proxy detektör havuzu
-        vpnCheckEndpointPrimary: "https://extreme-ip-lookup.com/json/?key=demo2347",
+        // ip-api.com: Ücretsiz, key gerektirmez, CORS destekler, VPN/proxy alanı mevcut
+        // fields parametresiyle sadece ihtiyaç duyulan alanlar çekiliyor (performans optimizasyonu)
+        vpnCheckEndpointPrimary: "https://ip-api.com/json/?fields=status,message,proxy,hosting,org,isp,query",
+        
+        // Yedek hat: ipapi.co - key'siz, ücretsiz, CORS destekli
         vpnCheckEndpointBackup: "https://ipapi.co/json/",
         
         // 🚀 TAMAMEN BENZERSİZ SAYAÇ ODASI
-        // İnternetteki diğer odalarla asla çakışmayacak, sana özel kriptografik alan
-        counterEndpoint: "https://api.counterapi.dev/v1/aikoai_quantum_core_99x_visits/global/increment",
+        // counterapi.dev: Key gerektirmez, ücretsiz, namespace+key sistemi
+        // DÜZELTME: endpoint /up ile bitmeli, /increment geçersiz format!
+        counterEndpoint: "https://api.counterapi.dev/v1/aikoai_quantum_core/visits/up",
         
         colorPalette: {
             neonPink: "rgb(255, 42, 116)",
@@ -158,7 +162,7 @@
             AikoLog.info("Initiating firewall network integrity verification...");
             
             try {
-                // Birincil hat üzerinden en agresif sorgu parametreleriyle veriyi çekiyoruz
+                // ip-api.com: key'siz, ücretsiz, fields parametresiyle optimize sorgu
                 const response = await fetch(AIKO_CONFIG.vpnCheckEndpointPrimary);
                 
                 if (!response.ok) {
@@ -166,16 +170,33 @@
                 }
 
                 const data = await response.json();
+
+                // ip-api.com başarısız status dönebilir (rate limit vb.)
+                if (data.status === "fail") {
+                    throw new Error(`ip-api.com status fail: ${data.message}`);
+                }
+
                 AikoState.detectedIp = data.query || "127.0.0.1";
                 
-                // 🚀 ULTRA AGRESİF FİLTRELEME ALGORİTMASI
-                // İşletme türü ev interneti veya mobil veri değilse (Hosting/Vpn ise) direkt yakalar!
-                // Ek olarak Opera VPN'in ve sinsi mobil proxy barlarının gizli ISP imzalarını tarar.
-                const isHostingType = data.businessType === "Hosting" || data.ipType === "Hosting";
-                const isVpnOrg = data.org && (data.org.toLowerCase().includes("vpn") || data.org.toLowerCase().includes("proxy") || data.org.toLowerCase().includes("tor ") || data.org.toLowerCase().includes("mullvad") || data.org.toLowerCase().includes("nordvpn"));
-                const isOperaProxy = (data.isp && data.isp.toLowerCase().includes("opera")) || (data.org && data.org.toLowerCase().includes("opera"));
+                // 🚀 ip-api.com'un NATIVE alanları:
+                // data.proxy  → true/false  (VPN, proxy, Tor tespiti için)
+                // data.hosting → true/false  (datacenter/hosting IP tespiti için)
+                // data.org    → ISP/Org string (ek kontrol için)
+                // data.isp    → ISP adı (Opera VPN gibi sinsi proxy barları için)
+                const isProxy   = data.proxy === true;
+                const isHosting = data.hosting === true;
+                const isVpnOrg  = data.org && (
+                    data.org.toLowerCase().includes("vpn")        ||
+                    data.org.toLowerCase().includes("proxy")      ||
+                    data.org.toLowerCase().includes("tor ")       ||
+                    data.org.toLowerCase().includes("mullvad")    ||
+                    data.org.toLowerCase().includes("nordvpn")    ||
+                    data.org.toLowerCase().includes("expressvpn")
+                );
+                const isOperaProxy = (data.isp && data.isp.toLowerCase().includes("opera")) ||
+                                     (data.org && data.org.toLowerCase().includes("opera"));
 
-                if (isHostingType || isVpnOrg || isOperaProxy) {
+                if (isProxy || isHosting || isVpnOrg || isOperaProxy) {
                     AikoState.isVpnBlocked = true;
                     AikoLog.security(`ACCESS DENIED: VPN/Proxy connection signature detected from IP: ${AikoState.detectedIp}`);
                     this.triggerVpnOverride();
@@ -202,9 +223,15 @@
                 const data = await response.json();
                 AikoState.detectedIp = data.ip || "127.0.0.1";
 
-                const isProxy = data.proxy === true;
+                // ipapi.co alan isimleri ip-api.com'dan farklı
+                const isProxy        = data.proxy === true;
                 const isVpnSignature = data.security && (data.security.vpn === true || data.security.proxy === true);
-                const isDatacenter = data.org && (data.org.toLowerCase().includes("hosting") || data.org.toLowerCase().includes("vpn") || data.org.toLowerCase().includes("datacenter") || data.org.toLowerCase().includes("cloudflare"));
+                const isDatacenter   = data.org && (
+                    data.org.toLowerCase().includes("hosting")    ||
+                    data.org.toLowerCase().includes("vpn")        ||
+                    data.org.toLowerCase().includes("datacenter") ||
+                    data.org.toLowerCase().includes("cloudflare")
+                );
 
                 if (isProxy || isVpnSignature || isDatacenter) {
                     AikoState.isVpnBlocked = true;
@@ -244,15 +271,18 @@
             AikoLog.info("Connecting to secure multi-node cloud counter service...");
             
             try {
-                // Sunucusuz mimaride, sana özel tahsis edilmiş kriptik odadan veriyi çekip 1 artırıyoruz
+                // counterapi.dev: key'siz, ücretsiz, /up endpoint'i ile sayacı 1 artır
+                // Yanıt formatı: { namespace, key, count } — value değil, COUNT!
                 const response = await fetch(AIKO_CONFIG.counterEndpoint);
                 
                 if (!response.ok) {
-                    throw new Error("Cloud counter response stream corrupt.");
+                    throw new Error(`Cloud counter response stream corrupt. HTTP ${response.status}`);
                 }
 
                 const data = await response.json();
-                AikoState.totalVisits = data.value || 0;
+
+                // DÜZELTME: counterapi.dev "count" alanını döndürür, "value" değil!
+                AikoState.totalVisits = data.count || 0;
                 
                 this.updateCounterUI(AikoState.totalVisits);
                 AikoLog.success(`Global core storage sync complete. Total Core Visits: ${AikoState.totalVisits}`);
