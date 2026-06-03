@@ -1,10 +1,10 @@
 /**
  * ==========================================================================
- * AIKOAI SYSTEMS CORE CORE-ENGINE v2.4
- * HIGH-PERFORMANCE QUANTUM NEURAL INTEGRATION MOTOR
+ * AIKOAI SYSTEMS CORE CORE-ENGINE v2.5 - SECURITY OVERRIDE EDITION
+ * HIGH-PERFORMANCE QUANTUM NEURAL INTEGRATION & ACCESS CONTROL MOTOR
  * --------------------------------------------------------------------------
  * Developed for NexalythScript Compilation Environment
- * Project Status: Early Access v2.4 [Stable Build]
+ * Project Status: Early Access v2.5 [Overclock Security Build]
  * Powered by AikoAI Labs © 2026
  * ==========================================================================
  */
@@ -16,11 +16,15 @@
     // GLOBAL SYSTEM CONFIGURATION & STATE MANAGEMENT
     // ==========================================================================
     const AIKO_CONFIG = {
-        engineSignature: "NexalythScript-JS-Bridge-v2.4",
+        engineSignature: "NexalythScript-JS-Bridge-v2.5-Secure",
         verboseMode: true,
-        performanceThreshold: 60, // Target FPS
-        synapseDensity: 0.08, // Synapse node generation multiplier
-        heartBeatInterval: 1200, // Pulse latency in ms
+        performanceThreshold: 60, // Target FPS Frame Rate
+        synapseDensity: 0.08, // Synapse node density factor
+        heartBeatInterval: 1200, // Pulse frequency factor
+        // Güvenilir, yüksek hızlı ve token gerektirmeyen harici VPN / Proxy Detektör API'si
+        vpnCheckEndpoint: "https://ipapi.co/json/",
+        // Ücretsiz, dinamik ve backend gerektirmeyen küresel bulut sayaç anahtarı
+        counterEndpoint: "https://api.counterapi.dev/v1/aikoai_core_visits/global/increment",
         colorPalette: {
             neonPink: "rgb(255, 42, 116)",
             neonCyan: "rgb(0, 240, 255)",
@@ -32,18 +36,22 @@
 
     const AikoState = {
         isInitialized: false,
+        isVpnBlocked: false,
         hardwareProfile: null,
         activeViewport: "hero",
         fps: 60,
         lastFrameTime: performance.now(),
         canvasRegistry: {},
-        animationIds: {}
+        animationIds: {},
+        detectedIp: "0.0.0.0",
+        totalVisits: 0
     };
 
-    // Logger Utility (Sistem Geliştirici Günlükleri)
+    // Logger Utility (Sistem Geliştirici Günlük Raporlama Sistemi)
     const AikoLog = {
         info: (msg) => { if (AIKO_CONFIG.verboseMode) console.log(`%c[AIKO INFO] ${msg}`, "color: #00f0ff; font-weight: bold;"); },
         success: (msg) => { if (AIKO_CONFIG.verboseMode) console.log(`%c[AIKO SUCCESS] ${msg}`, "color: #39ff14; font-weight: bold;"); },
+        security: (msg) => { console.log(`%c[AIKO SECURITY] ${msg}`, "color: #ff2a74; font-weight: bold; text-shadow: 0 0 5px rgba(255,42,116,0.5);"); },
         warn: (msg) => { console.warn(`[AIKO WARNING] ${msg}`); },
         error: (msg) => { console.error(`[AIKO CRITICAL ERROR] ${msg}`); }
     };
@@ -64,13 +72,13 @@
             const memory = navigator.deviceMemory || 4;
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             
-            // Simüle edilmiş kuantum el sıkışması gecikmesi (Görsel stabilite için)
-            await this.delay(600);
+            // Görsel kararlılık için kontrollü gecikme döngüsü
+            await this.delay(300);
             
             this.updateStatus("MEASURING GPU SYNAPSE ACCELERATION...");
             const gpuVendor = this.getGPUVendor();
             
-            await this.delay(400);
+            await this.delay(200);
             
             AikoState.hardwareProfile = {
                 cores: cores,
@@ -84,8 +92,8 @@
                 }
             };
 
-            AikoLog.success(`Hardware profile locked: ${cores} Cores, ${memory}GB RAM, Mobile: ${isMobile}, GPU: ${gpuVendor}`);
-            this.updateStatus("HARDWARE DETECTED SUCCESSFULLY. ALL LINK LOCK.");
+            AikoLog.success(`Hardware profile locked: ${cores} Cores, ${memory}GB RAM, GPU: ${gpuVendor}`);
+            this.updateStatus("HARDWARE DETECTED. READY FOR FIREWALL HANDSHAKE.");
         }
 
         getGPUVendor() {
@@ -113,7 +121,120 @@
     }
 
     // ==========================================================================
-    // CANVASES & ANIMATION ENGINES (MATEKMATİKSEL SİNAPS AĞI)
+    // 🛡️ QUANTUM FIREWALL MODULE: VPN & PROXY ENGINE DETECTOR
+    // ==========================================================================
+    class SecurityFirewall {
+        constructor() {
+            this.appStructure = document.getElementById("aiko-main-app-structure");
+            this.vpnScreen = document.getElementById("vpn-override-screen");
+            this.counterDisplay = document.getElementById("aiko-core-counter-value");
+        }
+
+        async verifyNetworkIntegrity() {
+            AikoLog.info("Initiating firewall network integrity verification...");
+            
+            try {
+                // IP ve Aygıt Ağ Sağlayıcı Verilerini Çekme Adımı
+                const response = await fetch(AIKO_CONFIG.vpnCheckEndpoint);
+                
+                if (!response.ok) {
+                    throw new Error("Network security descriptor handshake failed.");
+                }
+
+                const data = await response.json();
+                AikoState.detectedIp = data.ip || "127.0.0.1";
+                
+                // Gelişmiş VPN / Proxy Kontrol Filtresi
+                // ipapi.co altyapısındaki proxy, vpn, asn sahtekarlığı ve kurumsal veri merkezi bloklarını tarar
+                // Ek olarak Opera Mobil'in gömülü VPN'i veya tarayıcı proxy barlarını yakalamak için ISP ve Org analizi yapar
+                const isProxy = data.proxy === true;
+                const isVpn = data.security && (data.security.vpn === true || data.security.proxy === true);
+                const isDatacenter = data.org && (data.org.toLowerCase().includes("hosting") || data.org.toLowerCase().includes("vpn") || data.org.toLowerCase().includes("datacenter") || data.org.toLowerCase().includes("cloudflare"));
+                
+                // Test etmek istersen aşağıdaki satırın yorumunu kaldırıp simüle edebilirsin kk:
+                // const simulateVpnTrigger = true; if(simulateVpnTrigger) { AikoState.isVpnBlocked = true; this.triggerVpnOverride(); return; }
+
+                if (isProxy || isVpn || isDatacenter) {
+                    AikoState.isVpnBlocked = true;
+                    AikoLog.security(`ACCESS DENIED: VPN/Proxy connection signature detected from IP: ${AikoState.detectedIp}`);
+                    this.triggerVpnOverride();
+                } else {
+                    AikoLog.success(`Network integrity verified cleanly. IP: ${AikoState.detectedIp} is clear.`);
+                    // VPN Yoksa Sayacı Güvenle Ateşle!
+                    await this.initializeCloudCounter();
+                }
+
+            } catch (error) {
+                AikoLog.warn(`Firewall bypass warning: ${error.message}. Defaulting to secure state.`);
+                // API hatası durumunda sayacı yerel veriyle besleyip sistemi çökertmiyoruz
+                this.fallbackCounter();
+            }
+        }
+
+        triggerVpnOverride() {
+            // Sitenin ana iskeletini pürüzsüzce ortadan kaldır
+            if (this.appStructure) {
+                this.appStructure.style.display = "none";
+            }
+            
+            // İstediğin o siberpunk titreyen neon uyarı ekranını devreye sok
+            if (this.vpnScreen) {
+                this.vpnScreen.style.display = "flex";
+            }
+            
+            // Kalp çizim motorunu acil durum alarm frekansına geçir
+            if (AikoState.canvasRegistry.cyberHeart) {
+                AikoState.canvasRegistry.cyberHeart.switchToAlarmMode();
+            }
+
+            AikoLog.security("Quantum firewall restriction enforced. Main layout detached. Warnings visible.");
+        }
+
+        async initializeCloudCounter() {
+            AikoLog.info("Connecting to secure multi-node cloud counter service...");
+            
+            try {
+                // Güvenli CountAPI altyapısı üzerinden veriyi internetteki global odada 1 artırıp çekiyoruz
+                const response = await fetch(AIKO_CONFIG.counterEndpoint);
+                
+                if (!response.ok) {
+                    throw new Error("Cloud counter response stream corrupt.");
+                }
+
+                const data = await response.json();
+                AikoState.totalVisits = data.value || 0;
+                
+                this.updateCounterUI(AikoState.totalVisits);
+                AikoLog.success(`Global core storage sync complete. Total Core Visits: ${AikoState.totalVisits}`);
+
+            } catch (error) {
+                AikoLog.error(`Cloud counter synchronization failure: ${error.message}`);
+                this.fallbackCounter();
+            }
+        }
+
+        updateCounterUI(value) {
+            if (this.counterDisplay) {
+                // Sayıyı siberpunk HUD ekranına uygun olarak 5 haneli (00482 gibi) formatlama algoritması
+                const formattedValue = String(value).padStart(5, '0');
+                this.counterDisplay.innerText = formattedValue;
+                
+                // Parlama efektini tetiklemek için CSS klas kontrolü yap
+                this.counterDisplay.classList.add("glow-active");
+            }
+        }
+
+        fallbackCounter() {
+            // Eğer internet koparsa veya API çökerse sayacı çirkin göstermemek için yerel bir baz değer basıyoruz
+            if (this.counterDisplay) {
+                this.counterDisplay.innerText = "00404";
+                this.counterDisplay.style.color = AIKO_CONFIG.colorPalette.neonPink;
+            }
+        }
+    }
+
+    // ==========================================================================
+    // CANVASES & ANIMATION ENGINES (MATEMATİKSEL SİNAPS AĞI)
     // ==========================================================================
     class SynapseWebEngine {
         constructor(canvasId) {
@@ -142,10 +263,9 @@
             this.canvas.width = window.innerWidth;
             this.canvas.height = window.innerHeight;
             
-            // Ekran büyüklüğüne göre node yoğunluğunu optimize etme algoritması
             const area = this.canvas.width * this.canvas.height;
             this.maxNodes = Math.floor(area * AIKO_CONFIG.synapseDensity / 500);
-            if (this.maxNodes > 150) this.maxNodes = 150; // Performance bottleneck cap
+            if (this.maxNodes > 150) this.maxNodes = 150; // Performans darboğaz tavanı
         }
 
         generateNodes() {
@@ -181,11 +301,9 @@
                 node.y += node.vy;
                 node.pulseSeed += 0.02;
 
-                // Kenarlardan sekme mekanizması
                 if (node.x < 0 || node.x > this.canvas.width) node.vx *= -1;
                 if (node.y < 0 || node.y > this.canvas.height) node.vy *= -1;
 
-                // Mouse etkileşimi (İtme kuvveti algoritması)
                 if (this.mouse.x !== null && this.mouse.y !== null) {
                     let dx = node.x - this.mouse.x;
                     let dy = node.y - this.mouse.y;
@@ -202,13 +320,15 @@
         render() {
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
             
-            // Çizgilerin kuantum ağ modellemesiyle çizilmesi
+            // Eğer VPN engeli varsa sinaps ağ hatlarını kırmızı güvenlik tonuna çek
+            const currentLineColor = AikoState.isVpnBlocked ? "255, 42, 116" : "0, 240, 255";
+
             for (let i = 0; i < this.nodes.length; i++) {
                 let n1 = this.nodes[i];
                 
                 this.ctx.beginPath();
                 let pulseAlpha = 0.2 + Math.sin(n1.pulseSeed) * 0.1;
-                this.ctx.fillStyle = `rgba(0, 240, 255, ${pulseAlpha})`;
+                this.ctx.fillStyle = `rgba(${currentLineColor}, ${pulseAlpha})`;
                 this.ctx.arc(n1.x, n1.y, n1.radius, 0, Math.PI * 2);
                 this.ctx.fill();
 
@@ -221,7 +341,7 @@
                     if (dist < this.connectionDistance) {
                         let alpha = (this.connectionDistance - dist) / this.connectionDistance * 0.15;
                         this.ctx.beginPath();
-                        this.ctx.strokeStyle = `rgba(0, 240, 255, ${alpha})`;
+                        this.ctx.strokeStyle = `rgba(${currentLineColor}, ${alpha})`;
                         this.ctx.lineWidth = 0.5;
                         this.ctx.moveTo(n1.x, n1.y);
                         this.ctx.lineTo(n2.x, n2.y);
@@ -233,19 +353,21 @@
     }
 
     // ==========================================================================
-    // NEXALYTH SİBER KALP VE KASA ÇİZİM MOTORU (1000101857 ESCAPE)
+    // NEXALYTH SİBER KALP VE KASA ÇİZİM MOTORU (SECURITY OPTIMIZED)
     // ==========================================================================
     class NexalythHeartEngine {
         constructor(canvasId) {
             this.canvas = document.getElementById(canvasId);
             if (!this.canvas) {
-                AikoLog.warn(`Heart Engine Canvas ID '${canvasId}' not found. Skipping visual compilation.`);
+                AikoLog.warn(`Heart Engine Canvas ID '${canvasId}' not found. Skipping validation.`);
                 return;
             }
             this.ctx = this.canvas.getContext("2d");
             this.angle = 0;
             this.particles = [];
             this.matrixGrid = [];
+            this.isAlarmState = false;
+            this.heartPulseFrequency = 2.5; // Normal atış hızı ritmi
             
             this.init();
         }
@@ -256,6 +378,11 @@
             AikoLog.success("Quantum Cybernetic Heart Engine booted smoothly.");
         }
 
+        switchToAlarmMode() {
+            this.isAlarmState = true;
+            this.heartPulseFrequency = 5.0; // VPN yakalandığında kalbi panik hızına alıyoruz!
+        }
+
         resize() {
             const rect = this.canvas.parentElement.getBoundingClientRect();
             this.canvas.width = rect.width || 400;
@@ -264,7 +391,6 @@
 
         generateMatrixGrid() {
             this.matrixGrid = [];
-            // Arka plandaki dijital akış çizgileri matrisi
             for (let i = 0; i < 15; i++) {
                 this.matrixGrid.push({
                     x: Math.random() * this.canvas.width,
@@ -277,19 +403,18 @@
         }
 
         drawHeartPath(t, scale) {
-            // Matematiksel Kalp Denklemi koordinat dönüşümü (Kardiyot Eğrisi parametrik)
+            // Kardiyot parametrik formülü dönüşüm algoritması
             let x = 16 * Math.pow(Math.sin(t), 3);
             let y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
             return {
                 x: x * scale + this.canvas.width / 2,
-                y: -y * scale + this.canvas.height / 2 // Bilgisayar grafikleri için y eksenini ters çeviriyoruz
+                y: -y * scale + this.canvas.height / 2
             };
         }
 
         update() {
             this.angle += 0.02;
             
-            // Matris arka plan çizgilerini kaydır
             this.matrixGrid.forEach(line => {
                 line.y += line.speed;
                 if (line.y > this.canvas.height) {
@@ -298,10 +423,10 @@
                 }
             });
 
-            // Rastgele mikro siber partiküller üret (Kalbin etrafında uçuşan parıltılar)
+            // Mikro siber partiküllerin harita üretimi
             if (Math.random() < 0.2 && this.particles.length < 40) {
                 let randomT = Math.random() * Math.PI * 2;
-                let currentPulseScale = 6 + Math.sin(this.angle * 2.5) * 0.4;
+                let currentPulseScale = 6 + Math.sin(this.angle * this.heartPulseFrequency) * 0.4;
                 let pos = this.drawHeartPath(randomT, currentPulseScale);
                 this.particles.push({
                     x: pos.x,
@@ -314,7 +439,6 @@
                 });
             }
 
-            // Partikül yaşam döngüsü güncellemesi
             for (let i = this.particles.length - 1; i >= 0; i--) {
                 let p = this.particles[i];
                 p.x += p.vx;
@@ -329,13 +453,16 @@
         render() {
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-            // 1. Arka Plan Matris Çizgileri Raporu
+            const activeCoreColor = this.isAlarmState ? "255, 42, 116" : "0, 240, 255";
+            const activeHeartColor = AIKO_CONFIG.colorPalette.neonPink;
+
+            // Arka Plan Matris Çizgilerinin Render Adımı
             this.ctx.lineWidth = 1;
             this.matrixGrid.forEach(line => {
                 let gradient = this.ctx.createLinearGradient(line.x, line.y, line.x, line.y + line.length);
-                gradient.addColorStop(0, `rgba(0, 240, 255, 0)`);
-                gradient.addColorStop(0.5, `rgba(0, 240, 255, ${line.opacity})`);
-                gradient.addColorStop(1, `rgba(0, 240, 255, 0)`);
+                gradient.addColorStop(0, `rgba(${activeCoreColor}, 0)`);
+                gradient.addColorStop(0.5, `rgba(${activeCoreColor}, ${line.opacity})`);
+                gradient.addColorStop(1, `rgba(${activeCoreColor}, 0)`);
                 this.ctx.strokeStyle = gradient;
                 this.ctx.beginPath();
                 this.ctx.moveTo(line.x, line.y);
@@ -343,51 +470,59 @@
                 this.ctx.stroke();
             });
 
-            // 2. Dinamik Nabız Hesaplama (Siber Kalp Atış Hızı)
-            let pulseFactor = Math.sin(this.angle * 2.5); // Kalp ritmi frekansı
+            let pulseFactor = Math.sin(this.angle * this.heartPulseFrequency);
             let targetScale = 6.5 + pulseFactor * 0.4;
 
-            // 3. Dış Neon Aurası Efekti (Glow Layer)
-            this.ctx.shadowBlur = 20 + pulseFactor * 8;
-            this.ctx.shadowColor = AIKO_CONFIG.colorPalette.neonPink;
+            // Eğer VPN kısıtlaması yoksa normal kalbi çiz, varsa kalp yerine siber tarama yapısı bırak
+            if (!AikoState.isVpnBlocked) {
+                this.ctx.shadowBlur = 20 + pulseFactor * 8;
+                this.ctx.shadowColor = activeHeartColor;
 
-            // 4. Ana Matematiksel Kalp Gövdesinin Çizilmesi
-            this.ctx.beginPath();
-            this.ctx.lineWidth = 3;
-            this.ctx.strokeStyle = AIKO_CONFIG.colorPalette.neonPink;
-            
-            for (let t = 0; t <= Math.PI * 2; t += 0.02) {
-                let pos = this.drawHeartPath(t, targetScale);
-                if (t === 0) {
-                    this.ctx.moveTo(pos.x, pos.y);
-                } else {
-                    this.ctx.lineTo(pos.x, pos.y);
+                this.ctx.beginPath();
+                this.ctx.lineWidth = 3;
+                this.ctx.strokeStyle = activeHeartColor;
+                
+                for (let t = 0; t <= Math.PI * 2; t += 0.02) {
+                    let pos = this.drawHeartPath(t, targetScale);
+                    if (t === 0) {
+                        this.ctx.moveTo(pos.x, pos.y);
+                    } else {
+                        this.ctx.lineTo(pos.x, pos.y);
+                    }
                 }
+                this.ctx.closePath();
+                this.ctx.stroke();
+            } else {
+                // VPN Bloke Durumunda Kalp Kutusunda Kırmızı Dairesel Kuantum Radarı Çizilir (⚠️ Ekranı Uyumlu HUD)
+                this.ctx.shadowBlur = 15;
+                this.ctx.shadowColor = AIKO_CONFIG.colorPalette.neonPink;
+                this.ctx.strokeStyle = AIKO_CONFIG.colorPalette.neonPink;
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.arc(this.canvas.width / 2, this.canvas.height / 2, 60 + pulseFactor * 5, 0, Math.PI * 2);
+                this.ctx.stroke();
             }
-            this.ctx.closePath();
-            this.ctx.stroke();
 
-            // Kuantum Çapraz Nişangah Merkez Çizgileri (Siberpunk HUD Deseni)
-            this.ctx.shadowBlur = 0; // Kapatıyoruz ki çizgiler bulanıklaşmasın
-            this.ctx.strokeStyle = "rgba(255, 42, 116, 0.15)";
+            // Siberpunk HUD Deseni Çapraz Nişangah Çizimleri
+            this.ctx.shadowBlur = 0;
+            this.ctx.strokeStyle = `rgba(${activeCoreColor}, 0.15)`;
             this.ctx.lineWidth = 1;
             
-            // Merkez Hedef Artısı
             let cx = this.canvas.width / 2;
             let cy = this.canvas.height / 2;
             this.ctx.beginPath();
             this.ctx.moveTo(cx - 30, cy); this.ctx.lineTo(cx + 30, cy);
-            this.ctx.moveTo(cx, cy - 30); this.ctx.lineTo(cx, cy - 30 + 60);
+            this.ctx.moveTo(cx, cy - 30); this.ctx.lineTo(cx, cy + 30);
             this.ctx.stroke();
 
-            // 5. Kanallardan Çıkan Parıltı Partiküllerinin Ekrana Basılması
+            // Parıltı Partiküllerinin Ekrana Basılması (Her durumda çalışır, arkadaki akış bozulmaz!)
             this.particles.forEach(p => {
-                this.ctx.fillStyle = `rgba(0, 240, 255, ${p.life})`;
+                this.ctx.fillStyle = `rgba(${activeCoreColor}, ${p.life})`;
                 this.ctx.shadowBlur = 6;
-                this.ctx.shadowColor = AIKO_CONFIG.colorPalette.neonCyan;
+                this.ctx.shadowColor = `rgba(${activeCoreColor}, 0.8)`;
                 this.ctx.fillRect(p.x, p.y, p.size, p.size);
             });
-            this.ctx.shadowBlur = 0; // Sonraki çizimler için sıfırlama
+            this.ctx.shadowBlur = 0;
         }
     }
 
@@ -401,11 +536,9 @@
         }
 
         syncViewportMetrics() {
-            // Opera ve mobil tarayıcılardaki değişken dinamik alt bar yüksekliğini (vh hatasını) ezme algoritması
             const realWindowHeight = window.innerHeight;
             
             if (this.heroSection) {
-                // Eğer ekran aşırı dikey daralmaya uğramışsa, padding değerlerini esnetip elemanların birbirine geçmesini önle
                 if (realWindowHeight < 650) {
                     this.heroSection.style.paddingTop = "90px";
                     this.heroSection.style.paddingBottom = "30px";
@@ -422,6 +555,8 @@
             const navItems = document.querySelectorAll(".nav-item");
 
             window.addEventListener("scroll", () => {
+                if (AikoState.isVpnBlocked) return; // VPN kilitliyse kaydırma takibini dondur
+
                 let currentActiveId = "hero";
                 const scrollPos = window.scrollY + 150;
 
@@ -450,33 +585,29 @@
     // THE ULTIMATE ENGINE MAIN LOOP (RECURSIVE RENDERING PIPELINE)
     // ==========================================================================
     function runCoreSystemLoop() {
-        // FPS Ölçüm ve Frame Atlatma Koruması
         const now = performance.now();
         const delta = now - AikoState.lastFrameTime;
         AikoState.fps = Math.round(1000 / delta);
         AikoState.lastFrameTime = now;
 
-        // 1. Sinaps Ağ Güncelleme & Çizim Adımı
         if (AikoState.canvasRegistry.synapseWeb) {
             AikoState.canvasRegistry.synapseWeb.update();
             AikoState.canvasRegistry.synapseWeb.render();
         }
 
-        // 2. Siber Kalp Güncelleme & Çizim Adımı
         if (AikoState.canvasRegistry.cyberHeart) {
             AikoState.canvasRegistry.cyberHeart.update();
             AikoState.canvasRegistry.cyberHeart.render();
         }
 
-        // Loop'u kesintisiz bir sonraki kareye bağla (Hardware Tarafından Tetiklenir)
         AikoState.animationIds.mainLoop = requestAnimationFrame(runCoreSystemLoop);
     }
 
     // ==========================================================================
-    // INITIALIZATION VECTOR (SİSTEM ATEŞLEME DÜĞMESİ)
+    // INITIALIZATION VECTOR (SİSTEM ATEŞLEME KERNEL TETİKLEYİCİSİ)
     // ==========================================================================
     async function initializeAikoCore() {
-        AikoLog.info("AikoAI Embedded Kernel v2.4 bootloader active.");
+        AikoLog.info("AikoAI Embedded Kernel v2.5 bootloader engine active.");
         
         // 1. Donanım Analizini Başlat
         const detector = new HardwareDetector();
@@ -502,18 +633,22 @@
                 if (AikoState.canvasRegistry.cyberHeart) AikoState.canvasRegistry.cyberHeart.resize();
                 
                 optimizer.syncViewportMetrics();
-            }, 150); // 150ms debounce gecikmesi ile performansı koruyoruz
+            }, 150);
         });
 
-        // 5. Yükleme Ekranını (Loader) Başarıyla Kapat ve Sistemi Canlandır
+        // 5. 🛡️ GÜVENLİK DUVARI VE VPN / SAYAÇ BAĞLANTI KONTROLÜ
+        const firewall = new SecurityFirewall();
+        await firewall.verifyNetworkIntegrity();
+
+        // 6. Yükleme Ekranını (Loader) Kapat ve Sistemi Canlandır
         setTimeout(() => {
             document.body.classList.remove("aiko-loading");
             AikoState.isInitialized = true;
             AikoLog.success("System loaded into hardware pipeline cleanly. Loader detached.");
             
-            // Ana Motor Döngüsünü Ateşle!
+            // Ana Motor Döngüsünü Sonsuz Kareye Ateşle!
             runCoreSystemLoop();
-        }, 800);
+        }, 600);
     }
 
     // Sayfa DOM Yapısı Hazır Olduğunda Güvenli Tetikleme Yap
