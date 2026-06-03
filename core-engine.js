@@ -1,10 +1,10 @@
 /**
  * ==========================================================================
- * AIKOAI SYSTEMS CORE CORE-ENGINE v2.7 - PRODUCTION RECONSTRUCT EDITION
+ * AIKOAI SYSTEMS CORE CORE-ENGINE v2.6 - PRODUCTION RECONSTRUCT EDITION
  * HIGH-PERFORMANCE QUANTUM NEURAL INTEGRATION & ACCESS CONTROL MOTOR
  * --------------------------------------------------------------------------
  * Developed for NexalythScript Compilation Environment
- * Project Status: Production Stable v2.7 [Overclock Security Build]
+ * Project Status: Production Stable v2.6 [Overclock Security Build]
  * Powered by AikoAI Labs © 2026
  * ==========================================================================
  */
@@ -16,18 +16,24 @@
     // SEKTÖR 1: GLOBAL SİSTEM KONFİGÜRASYONU VE DEĞİŞKEN MATRİSLERİ
     // ==========================================================================
     const AIKO_CONFIG = {
-        engineSignature: "NexalythScript-JS-Bridge-v2.7-Production-Stable",
+        engineSignature: "NexalythScript-JS-Bridge-v2.6-Production-Stable",
         verboseMode: true,
         performanceThreshold: 60, // Hedeflenen FPS Değeri
         synapseDensity: 0.08, // Sinaps düğüm yoğunluk çarpanı
         heartBeatInterval: 1200, // Kalp atış frekans katsayısı
         
-        // 🚀 %100 HTTPS DESTEKLİ VPN/PROXY DETEKTÖRÜ (GitHub Pages İçin Birebir)
-        vpnCheckEndpointPrimary: "https://ipwho.is/",
+        // 🚀 KURUMSAL VPN DETEKTÖR HATLARI (Fail-safe Pipeline Altyapısı)
+        // ip-api.com: Ücretsiz, key gerektirmez, CORS destekler, VPN/proxy alanı mevcut
+        // fields parametresiyle sadece ihtiyaç duyulan alanlar çekiliyor (performans optimizasyonu)
+        vpnCheckEndpointPrimary: "https://ip-api.com/json/?fields=status,message,proxy,hosting,org,isp,query",
         
-        // 🚀 TAMAMEN BENZERSİZ SAYAÇ HATLARI
-        counterIncrementEndpoint: "https://api.counterapi.dev/v1/aikoai_quantum_core/visits/up",
-        counterFetchEndpoint: "https://api.counterapi.dev/v1/aikoai_quantum_core/visits",
+        // Yedek hat: ipapi.co - key'siz, ücretsiz, CORS destekli
+        vpnCheckEndpointBackup: "https://ipapi.co/json/",
+        
+        // 🚀 TAMAMEN BENZERSİZ SAYAÇ ODASI
+        // counterapi.dev: Key gerektirmez, ücretsiz, namespace+key sistemi
+        // DÜZELTME: endpoint /up ile bitmeli, /increment geçersiz format!
+        counterEndpoint: "https://api.counterapi.dev/v1/aikoai_quantum_core/visits/up",
         
         colorPalette: {
             neonPink: "rgb(255, 42, 116)",
@@ -153,58 +159,111 @@
         }
 
         async verifyNetworkIntegrity() {
-            AikoLog.info("Initiating firewall network integrity verification via ipwho.is HTTPS pipeline...");
+            AikoLog.info("Initiating firewall network integrity verification...");
             
             try {
+                // ip-api.com: key'siz, ücretsiz, fields parametresiyle optimize sorgu
                 const response = await fetch(AIKO_CONFIG.vpnCheckEndpointPrimary);
-                if (!response.ok) throw new Error(`Handshake protocol error. Status: ${response.status}`);
-
-                const data = await response.json();
                 
-                if (data.success === false) {
-                    throw new Error(`ipwho.is failed: ${data.message}`);
+                if (!response.ok) {
+                    throw new Error("Primary security descriptor handshake failed. Shifting routing table...");
                 }
 
-                AikoState.detectedIp = data.ip || "127.0.0.1";
-                
-                // 🚀 NATIVE ULTRA AGRESİF VPN / PROXY YAKALAYICI MATRİS
-                const isProxyOrVpn = data.security && (
-                    data.security.vpn === true      ||
-                    data.security.proxy === true    ||
-                    data.security.tor === true      ||
-                    data.security.hosting === true
-                );
-                
-                // Opera VPN ve sinsi mobil tarayıcı tünelleri için ISP kontrol kalkanı
-                const isSinsiProxy = (data.connection && data.connection.isp && (
-                    data.connection.isp.toLowerCase().includes("opera") ||
-                    data.connection.isp.toLowerCase().includes("hosting") ||
-                    data.connection.isp.toLowerCase().includes("vpn")
-                ));
+                const data = await response.json();
 
-                if (isProxyOrVpn || isSinsiProxy) {
+                // ip-api.com başarısız status dönebilir (rate limit vb.)
+                if (data.status === "fail") {
+                    throw new Error(`ip-api.com status fail: ${data.message}`);
+                }
+
+                AikoState.detectedIp = data.query || "127.0.0.1";
+                
+                // 🚀 ip-api.com'un NATIVE alanları:
+                // data.proxy  → true/false  (VPN, proxy, Tor tespiti için)
+                // data.hosting → true/false  (datacenter/hosting IP tespiti için)
+                // data.org    → ISP/Org string (ek kontrol için)
+                // data.isp    → ISP adı (Opera VPN gibi sinsi proxy barları için)
+                const isProxy   = data.proxy === true;
+                const isHosting = data.hosting === true;
+                const isVpnOrg  = data.org && (
+                    data.org.toLowerCase().includes("vpn")        ||
+                    data.org.toLowerCase().includes("proxy")      ||
+                    data.org.toLowerCase().includes("tor ")       ||
+                    data.org.toLowerCase().includes("mullvad")    ||
+                    data.org.toLowerCase().includes("nordvpn")    ||
+                    data.org.toLowerCase().includes("expressvpn")
+                );
+                const isOperaProxy = (data.isp && data.isp.toLowerCase().includes("opera")) ||
+                                     (data.org && data.org.toLowerCase().includes("opera"));
+
+                if (isProxy || isHosting || isVpnOrg || isOperaProxy) {
                     AikoState.isVpnBlocked = true;
-                    AikoLog.security(`ACCESS DENIED: Active VPN profile signature isolated on IP: ${AikoState.detectedIp}`);
+                    AikoLog.security(`ACCESS DENIED: VPN/Proxy connection signature detected from IP: ${AikoState.detectedIp}`);
                     this.triggerVpnOverride();
                 } else {
-                    AikoLog.success(`Network integrity verified cleanly. IP: ${AikoState.detectedIp} is fully clear.`);
-                    // Temiz IP ise akıllı siber sayacı çalıştır
+                    AikoLog.success(`Network integrity verified cleanly. IP: ${AikoState.detectedIp} is clear.`);
+                    // Temiz IP ise sayacı güvenle tetikle
                     await this.initializeCloudCounter();
                 }
 
             } catch (error) {
-                AikoLog.error(`Firewall critical routing bypass warning: ${error.message}`);
-                // Canlı ortamda ağ kopması ihtimaline karşı sistemi çökertmeyip sayacı güvenli moda alıyoruz
+                AikoLog.warn(`Primary firewall routing error: ${error.message}`);
+                // Yedek koruma hattına geçiş algoritması (Fail-safe Engine)
+                await this.verifyNetworkIntegrityBackup();
+            }
+        }
+
+        async verifyNetworkIntegrityBackup() {
+            AikoLog.info("Executing backup firewall handshake sequence...");
+            
+            try {
+                const response = await fetch(AIKO_CONFIG.vpnCheckEndpointBackup);
+                if (!response.ok) throw new Error("All proxy network endpoints unreachable.");
+
+                const data = await response.json();
+                AikoState.detectedIp = data.ip || "127.0.0.1";
+
+                // ipapi.co alan isimleri ip-api.com'dan farklı
+                const isProxy        = data.proxy === true;
+                const isVpnSignature = data.security && (data.security.vpn === true || data.security.proxy === true);
+                const isDatacenter   = data.org && (
+                    data.org.toLowerCase().includes("hosting")    ||
+                    data.org.toLowerCase().includes("vpn")        ||
+                    data.org.toLowerCase().includes("datacenter") ||
+                    data.org.toLowerCase().includes("cloudflare")
+                );
+
+                if (isProxy || isVpnSignature || isDatacenter) {
+                    AikoState.isVpnBlocked = true;
+                    AikoLog.security(`ACCESS DENIED [BACKUP SHIELD]: VPN active on IP: ${AikoState.detectedIp}`);
+                    this.triggerVpnOverride();
+                } else {
+                    AikoLog.success(`Network integrity verified via backup node. IP: ${AikoState.detectedIp}`);
+                    await this.initializeCloudCounter();
+                }
+            } catch (fallbackError) {
+                AikoLog.error(`Firewall subsystem isolated: ${fallbackError.message}`);
+                // Canlı test aşamasında sitenin çöküp 404 kalmaması için sayacı çalıştırıyoruz
                 await this.initializeCloudCounter();
             }
         }
 
         triggerVpnOverride() {
-            if (this.appStructure) this.appStructure.style.display = "none";
-            if (this.vpnScreen) this.vpnScreen.style.display = "flex";
+            // Sitenin ana HTML gövdesini dom ağından tamamen soyutla
+            if (this.appStructure) {
+                this.appStructure.style.display = "none";
+            }
+            
+            // Fütüristik titreyen neon siber kalkan ekranını devreye sok
+            if (this.vpnScreen) {
+                this.vpnScreen.style.display = "flex";
+            }
+            
+            // Kasa içindeki kalbi acil durum panik frekansına geçir
             if (AikoState.canvasRegistry.cyberHeart) {
                 AikoState.canvasRegistry.cyberHeart.switchToAlarmMode();
             }
+
             AikoLog.security("Quantum firewall restriction enforced. Main layout detached. Access denied.");
         }
 
@@ -212,27 +271,18 @@
             AikoLog.info("Connecting to secure multi-node cloud counter service...");
             
             try {
-                // 🚀 AKILLI F5 KALKANI: Kullanıcı sayfayı yenileyip duruyorsa sayacı artırma, sadece veriyi çek!
-                const localSessionKey = "aiko_core_visited_today";
-                const hasVisited = localStorage.getItem(localSessionKey);
+                // counterapi.dev: key'siz, ücretsiz, /up endpoint'i ile sayacı 1 artır
+                // Yanıt formatı: { namespace, key, count } — value değil, COUNT!
+                const response = await fetch(AIKO_CONFIG.counterEndpoint);
                 
-                let targetUrl = AIKO_CONFIG.counterIncrementEndpoint; // Varsayılan: Artır
-                
-                if (hasVisited) {
-                    AikoLog.info("Existing user session token validated. Safe reload detected, switching to read-only buffer.");
-                    targetUrl = AIKO_CONFIG.counterFetchEndpoint; // Zaten girdiyse sadece oku!
+                if (!response.ok) {
+                    throw new Error(`Cloud counter response stream corrupt. HTTP ${response.status}`);
                 }
-
-                const response = await fetch(targetUrl);
-                if (!response.ok) throw new Error(`Cloud counter respond matrix corrupt. HTTP ${response.status}`);
 
                 const data = await response.json();
+
+                // DÜZELTME: counterapi.dev "count" alanını döndürür, "value" değil!
                 AikoState.totalVisits = data.count || 0;
-                
-                // İlk defa girmişse yerel hafızaya kilidi çak ki bir dahaki F5'te artmasın kk!
-                if (!hasVisited) {
-                    localStorage.setItem(localSessionKey, "true");
-                }
                 
                 this.updateCounterUI(AikoState.totalVisits);
                 AikoLog.success(`Global core storage sync complete. Total Core Visits: ${AikoState.totalVisits}`);
@@ -245,6 +295,7 @@
 
         updateCounterUI(value) {
             if (this.counterDisplay) {
+                // Sayıyı siberpunk HUD göstergesine uygun 5 haneli (00042 gibi) dizeye çeviren algoritma
                 const formattedValue = String(value).padStart(5, '0');
                 this.counterDisplay.innerText = formattedValue;
                 this.counterDisplay.classList.add("glow-active");
@@ -253,6 +304,7 @@
 
         fallbackCounter() {
             if (this.counterDisplay) {
+                // Gerçek bir hata durumunda dahi arayüzün siber estetiğini koruma algoritması
                 this.counterDisplay.innerText = "00001"; 
                 this.counterDisplay.style.color = AIKO_CONFIG.colorPalette.neonCyan;
             }
@@ -291,7 +343,7 @@
             
             const area = this.canvas.width * this.canvas.height;
             this.maxNodes = Math.floor(area * AIKO_CONFIG.synapseDensity / 500);
-            if (this.maxNodes > 150) this.maxNodes = 150;
+            if (this.maxNodes > 150) this.maxNodes = 150; // Performans tavan sınırı kalkanı
         }
 
         generateNodes() {
@@ -345,6 +397,8 @@
 
         render() {
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            
+            // VPN engeli aktifse hatları kırmızı siber alarm tonuna çeker
             const currentLineColor = AikoState.isVpnBlocked ? "255, 42, 116" : "0, 240, 255";
 
             for (let i = 0; i < this.nodes.length; i++) {
@@ -391,7 +445,7 @@
             this.particles = [];
             this.matrixGrid = [];
             this.isAlarmState = false;
-            this.heartPulseFrequency = 2.5;
+            this.heartPulseFrequency = 2.5; // Normal ritim katsayısı
             
             this.init();
         }
@@ -404,7 +458,7 @@
 
         switchToAlarmMode() {
             this.isAlarmState = true;
-            this.heartPulseFrequency = 5.5;
+            this.heartPulseFrequency = 5.5; // VPN yakalandığı an panik kalp ritmi!
         }
 
         resize() {
@@ -427,6 +481,7 @@
         }
 
         drawHeartPath(t, scale) {
+            // Kardiyot parametrik formül matrisi
             let x = 16 * Math.pow(Math.sin(t), 3);
             let y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
             return {
@@ -446,6 +501,7 @@
                 }
             });
 
+            // Mikro siber partiküllerin harita üretimi
             if (Math.random() < 0.2 && this.particles.length < 40) {
                 let randomT = Math.random() * Math.PI * 2;
                 let currentPulseScale = 6 + Math.sin(this.angle * this.heartPulseFrequency) * 0.4;
@@ -466,15 +522,19 @@
                 p.x += p.vx;
                 p.y += p.vy;
                 p.life -= p.decay;
-                if (p.life <= 0) this.particles.splice(i, 1);
+                if (p.life <= 0) {
+                    this.particles.splice(i, 1);
+                }
             }
         }
 
         render() {
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
             const activeCoreColor = this.isAlarmState ? "255, 42, 116" : "0, 240, 255";
             const activeHeartColor = AIKO_CONFIG.colorPalette.neonPink;
 
+            // Arka Plan Dijital Matris Çizgilerinin Render Aşaması
             this.ctx.lineWidth = 1;
             this.matrixGrid.forEach(line => {
                 let gradient = this.ctx.createLinearGradient(line.x, line.y, line.x, line.y + line.length);
@@ -491,21 +551,27 @@
             let pulseFactor = Math.sin(this.angle * this.heartPulseFrequency);
             let targetScale = 6.5 + pulseFactor * 0.4;
 
+            // Güvenlik kalkanı kapalıysa kalbi kusursuz çiz, aktifse radar moduna geç
             if (!AikoState.isVpnBlocked) {
                 this.ctx.shadowBlur = 20 + pulseFactor * 8;
                 this.ctx.shadowColor = activeHeartColor;
+
                 this.ctx.beginPath();
                 this.ctx.lineWidth = 3;
                 this.ctx.strokeStyle = activeHeartColor;
                 
                 for (let t = 0; t <= Math.PI * 2; t += 0.02) {
                     let pos = this.drawHeartPath(t, targetScale);
-                    if (t === 0) this.ctx.moveTo(pos.x, pos.y);
-                    else this.ctx.lineTo(pos.x, pos.y);
+                    if (t === 0) {
+                        this.ctx.moveTo(pos.x, pos.y);
+                    } else {
+                        this.ctx.lineTo(pos.x, pos.y);
+                    }
                 }
                 this.ctx.closePath();
                 this.ctx.stroke();
             } else {
+                // VPN Engeli aktifleştiğinde dairesel siber uyarı radarı çizer
                 this.ctx.shadowBlur = 15;
                 this.ctx.shadowColor = AIKO_CONFIG.colorPalette.neonPink;
                 this.ctx.strokeStyle = AIKO_CONFIG.colorPalette.neonPink;
@@ -515,15 +581,19 @@
                 this.ctx.stroke();
             }
 
+            // Siberpunk HUD Deseni Nişangah Çizimleri
             this.ctx.shadowBlur = 0;
             this.ctx.strokeStyle = `rgba(${activeCoreColor}, 0.15)`;
             this.ctx.lineWidth = 1;
-            let cx = this.canvas.width / 2, cy = this.canvas.height / 2;
+            
+            let cx = this.canvas.width / 2;
+            let cy = this.canvas.height / 2;
             this.ctx.beginPath();
             this.ctx.moveTo(cx - 30, cy); this.ctx.lineTo(cx + 30, cy);
             this.ctx.moveTo(cx, cy - 30); this.ctx.lineTo(cx, cy + 30);
             this.ctx.stroke();
 
+            // Parıltı Partiküllerinin Ekrana Gönderilmesi
             this.particles.forEach(p => {
                 this.ctx.fillStyle = `rgba(${activeCoreColor}, ${p.life})`;
                 this.ctx.shadowBlur = 6;
@@ -545,6 +615,7 @@
 
         syncViewportMetrics() {
             const realWindowHeight = window.innerHeight;
+            
             if (this.heroSection) {
                 if (realWindowHeight < 650) {
                     this.heroSection.style.paddingTop = "90px";
@@ -563,6 +634,7 @@
 
             window.addEventListener("scroll", () => {
                 if (AikoState.isVpnBlocked) return;
+
                 let currentActiveId = "hero";
                 const scrollPos = window.scrollY + 150;
 
@@ -574,9 +646,12 @@
 
                 if (AikoState.activeViewport !== currentActiveId) {
                     AikoState.activeViewport = currentActiveId;
+                    
                     navItems.forEach(item => {
                         item.classList.remove("active");
-                        if (item.getAttribute("href") === `#${currentActiveId}`) item.classList.add("active");
+                        if (item.getAttribute("href") === `#${currentActiveId}`) {
+                            item.classList.add("active");
+                        }
                     });
                     AikoLog.info(`Active system sector shifted to: ${currentActiveId.toUpperCase()}`);
                 }
@@ -597,10 +672,12 @@
             AikoState.canvasRegistry.synapseWeb.update();
             AikoState.canvasRegistry.synapseWeb.render();
         }
+
         if (AikoState.canvasRegistry.cyberHeart) {
             AikoState.canvasRegistry.cyberHeart.update();
             AikoState.canvasRegistry.cyberHeart.render();
         }
+
         AikoState.animationIds.mainLoop = requestAnimationFrame(runCoreSystemLoop);
     }
 
@@ -608,40 +685,51 @@
     // SEKTÖR 8: INITIALIZATION VECTOR (KERNEL TETİKLEYİCİSİ)
     // ==========================================================================
     async function initializeAikoCore() {
-        AikoLog.info("AikoAI Embedded Kernel v2.7 bootloader engine active.");
+        AikoLog.info("AikoAI Embedded Kernel v2.6 bootloader engine active.");
         
+        // 1. Donanım Analizini Başlat
         const detector = new HardwareDetector();
         await detector.analyzeSystem();
 
+        // 2. DOM Nesnelerini ve Canvas Sürücülerini Derle
         AikoState.canvasRegistry.synapseWeb = new SynapseWebEngine("nexalyth-synapse-web");
         AikoState.canvasRegistry.cyberHeart = new NexalythHeartEngine("nexalyth-heart-canvas");
 
+        // 3. Tasarım ve Mobil Arayüz Ayarları
         const optimizer = new LayoutOptimizer();
         optimizer.syncViewportMetrics();
         optimizer.bindNavigationSpy();
 
+        // 4. Pencere Boyut Değişim Yönetimi (Resize Watching Matrix)
         let resizeDebounceTimeout;
         window.addEventListener("resize", () => {
             clearTimeout(resizeDebounceTimeout);
             resizeDebounceTimeout = setTimeout(() => {
                 AikoLog.info("System resize trigger captured. Recalibrating spatial grid...");
+                
                 if (AikoState.canvasRegistry.synapseWeb) AikoState.canvasRegistry.synapseWeb.resize();
                 if (AikoState.canvasRegistry.cyberHeart) AikoState.canvasRegistry.cyberHeart.resize();
+                
                 optimizer.syncViewportMetrics();
             }, 150);
         });
 
+        // 5. 🛡️ GÜVENLİK DUVARI VE VPN / SAYAÇ BAĞLANTI KONTROLÜ
         const firewall = new SecurityFirewall();
         await firewall.verifyNetworkIntegrity();
 
+        // 6. Yükleme Ekranını Kapat ve Sistemi Ateşle
         setTimeout(() => {
             document.body.classList.remove("aiko-loading");
             AikoState.isInitialized = true;
             AikoLog.success("System loaded into hardware pipeline cleanly. Loader detached.");
+            
+            // Ana Motor Döngüsünü Sonsuz Döngüye Al!
             runCoreSystemLoop();
         }, 600);
     }
 
+    // Sayfa DOM Ağ Yapısı Hazır Olduğunda Güvenli Başlatma Yap
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", initializeAikoCore);
     } else {
@@ -651,7 +739,7 @@
 })();
 /**
  * ==========================================================================
- * END OF CORE COMPILATION MATRIX - KERNEL EXECUTION COMPLETE [v2.7]
+ * END OF CORE COMPILATION MATRIX - KERNEL EXECUTION COMPLETE [v2.6]
  * TOTAL LINES COMPILED VERIFIED ON HARDWARE SUBSYSTEM. SECURITY SECURE.
  * ==========================================================================
  */
