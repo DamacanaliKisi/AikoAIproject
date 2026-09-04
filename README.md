@@ -1,2 +1,2 @@
 # AikoAI-site
-AikoAI için hazırlanmış web sitesi reposu
+AikoAI için hazırlanmış web sitesi
