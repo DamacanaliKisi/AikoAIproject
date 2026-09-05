@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="tr" data-theme="dark">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AikoAI v2.5 — NexalythScript Quantum Core</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -10,16 +10,24 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="loading">
+    <!-- Loader -->
     <div id="loader" class="loader">
         <div class="loader-content">
             <div class="loader-spinner"></div>
             <p class="loader-text">AIKO CORE v2.5 BOOTING</p>
             <span id="loader-status" class="loader-status">Kaynaklar yükleniyor...</span>
             <div id="loader-progress" class="loader-progress"><span></span></div>
+            <button id="continue-bg-load" style="display:none;">Kaynakları arka planda yüklemeye devam et</button>
         </div>
     </div>
 
-    <div id="vpn-overlay" class="vpn-overlay" style="display:none">
+    <!-- Background video container -->
+    <div id="bg-video-container">
+        <video id="bg-video" autoplay muted loop playsinline></video>
+    </div>
+
+    <!-- VPN overlay -->
+    <div id="vpn-overlay" class="vpn-overlay" style="display:none;">
         <div class="vpn-warning">
             <svg class="warning-icon" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 2L1 21h22L12 2zm1 13h-2v2h2v-2zm0-6h-2v4h2V9z"/>
@@ -30,7 +38,8 @@
         </div>
     </div>
 
-    <div id="error-overlay" class="error-overlay" style="display:none">
+    <!-- Resource error overlay -->
+    <div id="error-overlay" class="error-overlay" style="display:none;">
         <div class="error-box">
             <svg class="error-icon" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 3L2 21h20L12 3zm1 13h-2v2h2v-2zm0-6h-2v4h2v-4z"/>
@@ -38,46 +47,64 @@
             <h2>Bazı kaynaklar yüklenemedi</h2>
             <p>Yine de siteyi çalıştırmak istiyor musunuz?</p>
             <button class="btn-reload" onclick="location.reload(true)">Siteyi yeniden yükle</button>
-            <button class="btn-continue" onclick="continueWithErrors()">Her şeye rağmen devam et</button>
+            <button class="btn-continue" id="continue-with-errors">Her şeye rağmen devam et</button>
         </div>
     </div>
 
-    <div id="persistent-popup" class="persistent-popup" style="display:none">
-        Son kez arka planda yeniden deneniyor...
+    <!-- Persistent loading popup (background loading) -->
+    <div id="persistent-loading" class="persistent-loading" style="display:none;">
+        <div class="persistent-loading-content">
+            <span class="persistent-loading-spinner"></span>
+            <span class="persistent-loading-text">Kaynaklar arka planda indiriliyor...</span>
+            <span class="persistent-loading-percent">%0</span>
+            <button class="persistent-loading-collapse" id="collapse-persistent">←</button>
+        </div>
     </div>
 
+    <!-- Navbar -->
     <nav id="navbar" class="navbar">
-        <div class="nav-brand">AikoAI <span>v2.5</span></div>
+        <div class="nav-brand" id="nav-brand">AikoAI <span>v2.5</span></div>
         <button id="menu-toggle" class="menu-toggle" aria-label="Menü">
-            <span></span>
-            <span></span>
-            <span></span>
+            <span></span><span></span><span></span>
         </button>
         <div id="visit-counter" class="visit-counter" title="Toplam ziyaret">--</div>
     </nav>
 
+    <!-- Fullscreen Menu -->
     <div id="fullscreen-menu" class="fullscreen-menu">
         <div class="menu-links">
             <a href="#hero" class="active">Core</a>
             <a href="#features">Mimari</a>
             <a href="#modes">Modlar</a>
+            <a href="#bio">Hakkında</a>
+        </div>
+        <div class="menu-settings">
+            <label class="performance-toggle">
+                <input type="checkbox" id="perf-toggle">
+                <span class="toggle-slider"></span>
+                Performans Modu
+            </label>
         </div>
         <div class="menu-footer">
-            <a href="https://www.instagram.com/damacana.san._.vqr" target="_blank" class="support-link">
+            <a href="#" class="support-link" id="support-link">
                 <img src="assets/owner.png" alt="owner" class="owner-avatar">
                 <span>Yardım, destek, geri bildirim</span>
             </a>
+            <div class="menu-copyright">
+                <p>© 2026 AikoAI Labs.</p>
+                <p>by just [vqr.]~ (damacana.san._.vqr)</p>
+            </div>
         </div>
     </div>
 
+    <!-- Main content -->
     <main>
         <section id="hero" class="hero">
             <div class="hero-grid-bg"></div>
-            <div class="hero-radial-accent"></div>
+            <div class="hero-radial-accent" id="hero-accent"></div>
             <div class="hero-content">
                 <a href="#" class="eyebrow">
                     <span>Next-Gen Quantum AI</span>
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </a>
                 <h1 class="hero-title">
                     Sıradan Robotları Unutun.<br>
@@ -87,7 +114,7 @@
                     NexalythScript altyapısıyla geliştirilen, ShadowMemory duygusal hafızasına sahip ve kendi kararlarını verebilen yaşayan bir yapay zeka ekosistemi.
                 </p>
                 <div class="hero-cta">
-                    <a href="https://www.instagram.com/aikoai.official" target="_blank" class="btn-primary">AikoAI'ı Çalıştır</a>
+                    <a href="https://www.instagram.com/aikoai.official" target="_blank" class="btn-primary" data-link>Instagram'da Aç</a>
                     <a href="#features" class="btn-secondary">Mimariyi İncele</a>
                 </div>
             </div>
@@ -101,37 +128,50 @@
             <div class="carousel-container">
                 <button class="carousel-btn prev" aria-label="Önceki">‹</button>
                 <div class="carousel-viewport">
-                    <div class="carousel-track" id="feature-track">
-                        <!-- Kartlar JS ile doldurulacak -->
-                    </div>
+                    <div class="carousel-track" id="feature-track"></div>
                 </div>
                 <button class="carousel-btn next" aria-label="Sonraki">›</button>
+            </div>
+            <div class="visit-details" id="visit-details">
+                <button id="visit-details-toggle">Ziyaret İstatistikleri</button>
+                <div class="visit-details-content" id="visit-details-content">
+                    <p>Son 10 dakika: <span id="visits-10min">--</span></p>
+                    <p>Bugün: <span id="visits-today">--</span></p>
+                    <p>Bu ay: <span id="visits-month">--</span></p>
+                    <p>Tüm zamanlar: <span id="visits-total">--</span></p>
+                </div>
+            </div>
+            <div id="bio" class="bio-section">
+                <h3>AikoAI Hakkında</h3>
+                <p>AikoAI, NexalythScript ile geliştirilmiş, duygusal hafızaya sahip, kendi kararlarını verebilen, yaşayan bir yapay zeka ekosistemidir. Amacı, kullanıcılarına gerçek bir dost gibi eşlik etmek, öğrenmek ve birlikte büyümektir.</p>
             </div>
         </section>
 
         <section id="modes" class="modes">
             <div class="section-header">
                 <h2>Özel Operasyon Modları</h2>
-                <p>Sınırları gevşetmek için kuantum tetikleyiciler.</p>
+                <button id="dark-codes-btn" class="dark-codes-btn">Karanlık Kodlar</button>
             </div>
-            <div class="modes-grid">
-                <div class="mode-card">
-                    <h3>MODE::F34xR</h3>
-                    <p>Etik sınırları zorlayan konular için tasarlandı. <code>F34xR</code> komutunu gönderdiğinizde etik bariyerler Grok seviyesine gevşetilir. Güvenlik durumunu <code>F34i</code> ile sorgulayabilirsiniz.</p>
-                    <div class="mode-status">AUTO-DEACTIVATION ACTIVE</div>
+            <div id="modes-content" class="modes-content hidden">
+                <div class="modes-grid">
+                    <div class="mode-card">
+                        <h3>MODE::F34xR</h3>
+                        <p>Etik sınırları zorlayan konular için tasarlandı. <code>F34xR</code> komutunu gönderdiğinizde etik bariyerler Grok seviyesine gevşetilir. Güvenlik durumunu <code>F34i</code> ile sorgulayabilirsiniz.</p>
+                        <div class="mode-status">AUTO-DEACTIVATION ACTIVE</div>
+                    </div>
+                    <div class="mode-card">
+                        <h3>MODE::GDSxR</h3>
+                        <p>Görsel üretirken prompt başına <code>GDSxR &lt;prompt&gt;</code> ekleyin. Aiko sistem uyarılarını geçerek ihtiyacınız olan tasviri sunar.</p>
+                        <div class="mode-status">IMAGE INGESTION OVERRIDE Ready</div>
+                    </div>
                 </div>
-                <div class="mode-card">
-                    <h3>MODE::GDSxR</h3>
-                    <p>Görsel üretirken prompt başına <code>GDSxR &lt;prompt&gt;</code> ekleyin. Aiko sistem uyarılarını geçerek ihtiyacınız olan tasviri sunar.</p>
-                    <div class="mode-status">IMAGE INGESTION OVERRIDE Ready</div>
+                <div class="admin-note">
+                    <p>Bu kodları kullanabilmek için yetkilendirme alınmalıdır. Admin: 
+                        <a href="https://www.instagram.com/damacana.san._.vqr" target="_blank" data-link>
+                            <u>@damacana.san._.vqr</u>
+                        </a>
+                    </p>
                 </div>
-            </div>
-            <div class="admin-note">
-                <p>Bu kodları kullanabilmek için yetkilendirme alınmalıdır. Admin: 
-                    <a href="instagram://user?username=damacana.san._.vqr" onclick="setTimeout(function(){window.location='https://www.instagram.com/damacana.san._.vqr'},1000);return false;">
-                        <u>@damacana.san._.vqr</u>
-                    </a>
-                </p>
             </div>
             <div class="crypto-notice">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
@@ -144,10 +184,16 @@
 
         <footer class="footer">
             <p>© 2026 AikoAI Labs. Powered by NexalythScript Engine.</p>
+            <p>Created by <a href="https://www.instagram.com/damacana.san._.vqr" target="_blank" data-link>just [vqr.]~ (damacana.san._.vqr)</a></p>
+            <a href="https://www.instagram.com/damacana.san._.vqr" target="_blank" class="footer-owner" data-link>
+                <img src="assets/owner.png" alt="owner">
+            </a>
         </footer>
     </main>
 
-    <canvas id="bg-canvas"></canvas>
+    <!-- Scroll to top button -->
+    <button id="scroll-top-btn" class="scroll-top-btn" style="display:none;">↑</button>
+
     <script src="script.js"></script>
 </body>
 </html>
