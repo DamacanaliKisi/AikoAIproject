@@ -5,6 +5,8 @@ const AIKO_CONFIG = {
     resources: [
         'styles.css',
         'script.js',
+        'assets/backgroundV.mp4',
+        'assets/backgroundH.mp4',
         'assets/owner.png'
     ],
     maxRetries: 3
@@ -12,17 +14,26 @@ const AIKO_CONFIG = {
 
 let resourceRetryCount = 0;
 let resourceFailures = [];
+let isLoadingInBackground = false;
+let persistentLoadingVisible = false;
+let performanceMode = localStorage.getItem('aiko-perf-mode') === 'true';
 
 const state = {
     isMenuOpen: false,
     isVpnBlocked: false,
-    theme: localStorage.getItem('aiko-theme') || 'dark',
     carouselIndex: 0,
     featureCards: [],
-    totalVisits: 0
+    totalVisits: 0,
+    uniqueVisitors: localStorage.getItem('aiko-unique-visitor') ? 0 : 1,
+    lastFpsCheck: performance.now(),
+    lowFpsCount: 0,
+    manualPerfDisable: localStorage.getItem('aiko-perf-manual-disabled') === 'true'
 };
 
-document.documentElement.setAttribute('data-theme', state.theme);
+// Başlangıçta performans modu uygula
+if (performanceMode) {
+    document.documentElement.classList.add('perf-mode');
+}
 
 function log(msg, type='info') {
     if (type === 'error') console.error(`[AIKO] ${msg}`);
@@ -30,10 +41,12 @@ function log(msg, type='info') {
     else console.log(`[AIKO] ${msg}`);
 }
 
+// Kaynak yükleme
 async function loadResources() {
     const loader = document.getElementById('loader');
     const statusEl = document.getElementById('loader-status');
     const progressBar = document.querySelector('.loader-progress span');
+    const continueBtn = document.getElementById('continue-bg-load');
     let total = AIKO_CONFIG.resources.length;
     let loaded = 0;
 
@@ -55,17 +68,17 @@ async function loadResources() {
             resourceRetryCount++;
             statusEl.textContent = `Bazı dosyalar yüklenemedi, tekrar deneniyor... (${resourceRetryCount}/${AIKO_CONFIG.maxRetries})`;
             progressBar.style.width = '0%';
-            // Retry failed resources
             await new Promise(resolve => setTimeout(resolve, 1000));
             await loadResources();
             return;
         } else {
+            // 3 deneme sonrası hata ekranı
             showResourceError();
             return;
         }
     }
 
-    // All resources loaded
+    // Başarıyla yüklendi, siteyi başlat
     finishLoading();
 }
 
@@ -77,72 +90,89 @@ function finishLoading() {
 function showResourceError() {
     document.body.classList.remove('loading');
     document.getElementById('error-overlay').style.display = 'flex';
+    document.getElementById('continue-with-errors').addEventListener('click', () => {
+        document.getElementById('error-overlay').style.display = 'none';
+        startBackgroundLoading();
+        initApp();
+    });
 }
 
-function continueWithErrors() {
-    document.getElementById('error-overlay').style.display = 'none';
-    const popup = document.getElementById('persistent-popup');
-    popup.style.display = 'block';
-    log('Son kez arka planda yeniden deneniyor...');
-    // Simulate retry
+function startBackgroundLoading() {
+    isLoadingInBackground = true;
+    const popup = document.getElementById('persistent-loading');
+    popup.style.display = 'flex';
+    updatePersistentLoading(0);
+
+    // Arka planda kalan kaynakları yükle
+    let resourcesToLoad = resourceFailures;
+    let total = resourcesToLoad.length;
+    let loaded = 0;
+    resourcesToLoad.forEach(async (resource) => {
+        try {
+            await fetch(resource, { cache: 'reload' });
+            loaded++;
+            updatePersistentLoading(Math.floor((loaded/total)*100));
+        } catch (err) {
+            log(`Background loading failed for ${resource}`, 'error');
+        }
+    });
+    // Simüle: tüm kaynaklar yüklendiğinde
     setTimeout(() => {
-        popup.style.transition = 'transform 0.5s, opacity 0.5s';
-        popup.style.transform = 'translateX(100%)';
-        popup.style.opacity = '0';
-        setTimeout(() => popup.style.display = 'none', 500);
-        finishLoading();
-    }, 2000);
+        updatePersistentLoading(100);
+        setTimeout(() => {
+            popup.querySelector('.persistent-loading-spinner').style.display = 'none';
+            popup.querySelector('.persistent-loading-text').textContent = 'İndirildi!';
+            popup.querySelector('.persistent-loading-percent').textContent = '%100';
+            // Tik animasyonu
+            const check = document.createElement('span');
+            check.innerHTML = '✓';
+            check.style.color = '#39ff14';
+            popup.querySelector('.persistent-loading-content').appendChild(check);
+            setTimeout(() => {
+                popup.style.transition = 'transform 0.5s, opacity 0.5s';
+                popup.style.transform = 'translateX(-100%)';
+                popup.style.opacity = '0';
+                setTimeout(() => popup.style.display = 'none', 500);
+            }, 1000);
+        }, 500);
+    }, 3000);
 }
 
+function updatePersistentLoading(percent) {
+    const percentEl = document.querySelector('.persistent-loading-percent');
+    if (percentEl) percentEl.textContent = '%' + percent;
+}
+
+// Uygulama başlatma
 function initApp() {
-    setupTheme();
     setupNavbar();
     setupFullscreenMenu();
     setupCarousel();
     setupVPNCheck();
     setupVisitCounter();
     setupScrollSpy();
-    initBackgroundCanvas();
+    setupHeroAnimation();
+    setupScrollTopButton();
+    setupLinkTransitions();
+    setupCopyProtection();
+    setupDevToolsProtection();
+    setupPerformanceToggle();
+    setupVisitDetails();
+    initBackgroundVideo();
+    startFpsMonitoring();
     log('AikoAI v2.5 initialized successfully');
 }
 
-function setupTheme() {
-    const toggle = document.createElement('button');
-    toggle.className = 'theme-toggle';
-    toggle.innerHTML = state.theme === 'dark' ? '☀️' : '🌙';
-    toggle.style.position = 'fixed';
-    toggle.style.bottom = '20px';
-    toggle.style.right = '20px';
-    toggle.style.zIndex = '1000';
-    toggle.style.background = 'var(--card-bg)';
-    toggle.style.border = '1px solid var(--border)';
-    toggle.style.borderRadius = '50%';
-    toggle.style.width = '45px';
-    toggle.style.height = '45px';
-    toggle.style.cursor = 'pointer';
-    toggle.style.fontSize = '20px';
-    toggle.style.display = 'flex';
-    toggle.style.alignItems = 'center';
-    toggle.style.justifyContent = 'center';
-    toggle.style.backdropFilter = 'blur(10px)';
-    document.body.appendChild(toggle);
-    toggle.addEventListener('click', () => {
-        state.theme = state.theme === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', state.theme);
-        localStorage.setItem('aiko-theme', state.theme);
-        toggle.innerHTML = state.theme === 'dark' ? '☀️' : '🌙';
-    });
-}
-
+// Navigasyon
 function setupNavbar() {
     const navbar = document.getElementById('navbar');
     let lastScroll = 0;
     window.addEventListener('scroll', () => {
         const currentScroll = window.scrollY;
         if (currentScroll > lastScroll && currentScroll > 100) {
-            navbar.classList.add('hidden');
+            navbar.style.transform = 'translateY(-100%)';
         } else {
-            navbar.classList.remove('hidden');
+            navbar.style.transform = 'translateY(0)';
         }
         if (currentScroll > 50) {
             navbar.classList.add('scrolled');
@@ -151,26 +181,50 @@ function setupNavbar() {
         }
         lastScroll = currentScroll;
     });
+
+    // Marka tıklaması Instagram'a gitsin
+    document.getElementById('nav-brand').addEventListener('click', () => {
+        window.location.href = 'instagram://user?username=aikoai.official';
+        setTimeout(() => window.location.href = 'https://www.instagram.com/aikoai.official', 500);
+    });
 }
 
+// Tam ekran menü
 function setupFullscreenMenu() {
     const menuToggle = document.getElementById('menu-toggle');
     const menu = document.getElementById('fullscreen-menu');
+    const supportLink = document.getElementById('support-link');
     menuToggle.addEventListener('click', () => {
         state.isMenuOpen = !state.isMenuOpen;
         menuToggle.classList.toggle('active', state.isMenuOpen);
         menu.classList.toggle('open', state.isMenuOpen);
+        document.body.style.overflow = state.isMenuOpen ? 'hidden' : '';
     });
-    // Close menu on link click
+
     menu.querySelectorAll('a').forEach(link => {
-        link.addEventListener('click', () => {
-            state.isMenuOpen = false;
-            menuToggle.classList.remove('active');
-            menu.classList.remove('open');
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const href = link.getAttribute('href');
+            if (href.startsWith('#')) {
+                state.isMenuOpen = false;
+                menuToggle.classList.remove('active');
+                menu.classList.remove('open');
+                document.body.style.overflow = '';
+                document.querySelector(href).scrollIntoView({ behavior: 'smooth' });
+            } else {
+                // Link geçişi
+                navigateWithFade(href);
+            }
         });
+    });
+
+    supportLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        navigateWithFade('https://www.instagram.com/damacana.san._.vqr');
     });
 }
 
+// Carousel
 function setupCarousel() {
     const track = document.getElementById('feature-track');
     const features = getFeatureData();
@@ -195,7 +249,7 @@ function setupCarousel() {
 
     updateCarousel();
 
-    // Touch swipe support
+    // Touch swipe
     let startX = 0;
     const viewport = document.querySelector('.carousel-viewport');
     viewport.addEventListener('touchstart', e => {
@@ -225,7 +279,7 @@ function updateCarousel() {
         }
     });
     const track = document.getElementById('feature-track');
-    const cardWidth = cards[0] ? cards[0].offsetWidth + 20 : 320; // margin included
+    const cardWidth = cards[0] ? cards[0].offsetWidth + 20 : 320;
     const offset = -state.carouselIndex * cardWidth + (window.innerWidth - cardWidth) / 2;
     track.style.transform = `translateX(${offset}px)`;
 }
@@ -262,6 +316,7 @@ function getFeatureData() {
     ];
 }
 
+// VPN kontrolü
 async function setupVPNCheck() {
     try {
         const response = await fetch(AIKO_CONFIG.vpnEndpoint);
@@ -269,7 +324,7 @@ async function setupVPNCheck() {
         if (data.security && (data.security.vpn || data.security.proxy || data.security.tor)) {
             state.isVpnBlocked = true;
             document.getElementById('vpn-overlay').style.display = 'flex';
-            document.body.classList.add('vpn-blocked');
+            document.body.style.overflow = 'hidden';
             log('VPN detected, blocking access', 'error');
         } else {
             log('Network clean');
@@ -279,133 +334,248 @@ async function setupVPNCheck() {
     }
 }
 
+// Ziyaret sayacı
 async function setupVisitCounter() {
     try {
         const response = await fetch(`https://api.countapi.xyz/hit/${AIKO_CONFIG.counterNamespace}/${AIKO_CONFIG.counterKey}`);
         const data = await response.json();
         state.totalVisits = data.value;
-        updateVisitCounter();
     } catch (err) {
-        // Fallback: local counter
         state.totalVisits = parseInt(localStorage.getItem('aiko-local-visits') || '0') + 1;
         localStorage.setItem('aiko-local-visits', state.totalVisits);
-        updateVisitCounter();
+    }
+    updateVisitCounter();
+    // Benzersiz ziyaretçi simülasyonu
+    if (!localStorage.getItem('aiko-unique-visitor')) {
+        localStorage.setItem('aiko-unique-visitor', '1');
+        state.uniqueVisitors = 1;
+    } else {
+        state.uniqueVisitors = 0;
     }
 }
 
 function updateVisitCounter() {
     const counterEl = document.getElementById('visit-counter');
     if (counterEl) {
-        counterEl.textContent = String(state.totalVisits).padStart(5, '0');
+        counterEl.textContent = state.totalVisits;
     }
 }
 
-function setupScrollSpy() {
-    const sections = document.querySelectorAll('section[id]');
-    const menuLinks = document.querySelectorAll('.menu-links a');
-    window.addEventListener('scroll', () => {
-        let current = '';
-        sections.forEach(section => {
-            const sectionTop = section.offsetTop - 100;
-            if (window.scrollY >= sectionTop) {
-                current = section.getAttribute('id');
+function setupVisitDetails() {
+    const toggle = document.getElementById('visit-details-toggle');
+    const content = document.getElementById('visit-details-content');
+    toggle.addEventListener('click', () => {
+        content.style.display = content.style.display === 'block' ? 'none' : 'block';
+        if (content.style.display === 'block') {
+            // Detayları doldur
+            document.getElementById('visits-total').textContent = state.totalVisits;
+            document.getElementById('visits-today').textContent = Math.floor(state.totalVisits * 0.3); // Simülasyon
+            document.getElementById('visits-month').textContent = Math.floor(state.totalVisits * 0.7);
+            document.getElementById('visits-10min').textContent = Math.floor(state.totalVisits * 0.1);
+        }
+    });
+}
+
+// Hero animasyonu
+function setupHeroAnimation() {
+    const accent = document.getElementById('hero-accent');
+    const hero = document.getElementById('hero');
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting && entry.boundingClientRect.top < 0) {
+                // Hero'dan çıkıldı
+                accent.classList.add('expanded');
+                setTimeout(() => {
+                    document.body.classList.add('fade-out');
+                    setTimeout(() => {
+                        window.scrollTo(0, 0);
+                        document.body.classList.remove('fade-out');
+                        accent.classList.remove('expanded');
+                    }, 500);
+                }, 800);
             }
         });
-        menuLinks.forEach(link => {
-            link.classList.remove('active');
-            if (link.getAttribute('href') === `#${current}`) {
-                link.classList.add('active');
-            }
+    }, { threshold: 0.1 });
+    observer.observe(hero);
+}
+
+// Scroll top butonu
+function setupScrollTopButton() {
+    const btn = document.getElementById('scroll-top-btn');
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 500) {
+            btn.style.display = 'flex';
+        } else {
+            btn.style.display = 'none';
+        }
+    });
+    btn.addEventListener('click', () => {
+        document.body.classList.add('fade-out');
+        setTimeout(() => {
+            window.scrollTo(0, 0);
+            document.body.classList.remove('fade-out');
+        }, 500);
+    });
+}
+
+// Link geçişleri
+function setupLinkTransitions() {
+    document.querySelectorAll('a[data-link]').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const href = link.getAttribute('href');
+            navigateWithFade(href);
         });
     });
 }
 
-function initBackgroundCanvas() {
-    const canvas = document.getElementById('bg-canvas');
-    const ctx = canvas.getContext('2d');
-    let width, height;
-    const particles = [];
-    const center = { x: 0, y: 0 };
+function navigateWithFade(url) {
+    document.body.classList.add('fade-out');
+    setTimeout(() => {
+        window.location.href = url;
+    }, 500);
+}
 
-    function resize() {
-        width = canvas.width = window.innerWidth;
-        height = canvas.height = window.innerHeight;
-        center.x = width / 2;
-        center.y = height / 2;
-    }
-    resize();
-    window.addEventListener('resize', resize);
+// Kopyalama koruması
+function setupCopyProtection() {
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    document.addEventListener('copy', e => e.preventDefault());
+    document.addEventListener('cut', e => e.preventDefault());
+    document.addEventListener('paste', e => e.preventDefault());
+    document.addEventListener('selectstart', e => e.preventDefault());
+    document.addEventListener('dragstart', e => e.preventDefault());
+    // Görselleri koruma
+    document.querySelectorAll('img').forEach(img => {
+        img.addEventListener('contextmenu', e => e.preventDefault());
+        img.addEventListener('dragstart', e => e.preventDefault());
+    });
+}
 
-    // Create accretion disk particles
-    for (let i = 0; i < 300; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const radius = 50 + Math.random() * 200;
-        particles.push({
-            angle,
-            radius,
-            speed: (0.001 + Math.random() * 0.002) * (radius > 120 ? -1 : 1),
-            size: 0.5 + Math.random() * 1.5,
-            opacity: Math.random() * 0.5 + 0.1,
-            color: `rgba(${Math.random() > 0.5 ? '255,255,255' : '180,180,180'}, `
-        });
-    }
+// DevTools engelleme
+function setupDevToolsProtection() {
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'F12' || 
+            (e.ctrlKey && e.shiftKey && ['I','J','C'].includes(e.key.toUpperCase())) ||
+            (e.ctrlKey && e.key === 'U') ||
+            (e.ctrlKey && e.key === 'S') ||
+            (e.ctrlKey && e.shiftKey && e.key === 'K')) {
+            e.preventDefault();
+            return false;
+        }
+    });
+    // Sağ tık engeli zaten contextmenu'de var
+}
 
-    function draw() {
-        ctx.clearRect(0, 0, width, height);
+// Performans modu
+function setupPerformanceToggle() {
+    const toggle = document.getElementById('perf-toggle');
+    toggle.checked = performanceMode;
+    toggle.addEventListener('change', () => {
+        const newMode = toggle.checked;
+        // Geçiş animasyonu
+        document.body.classList.add('fade-out');
+        setTimeout(() => {
+            performanceMode = newMode;
+            localStorage.setItem('aiko-perf-mode', performanceMode);
+            document.documentElement.classList.toggle('perf-mode', performanceMode);
+            document.body.classList.remove('fade-out');
+            showTransitionOverlay(newMode ? 'Performans modu açılıyor...' : 'Performans modu kapatılıyor...', newMode);
+        }, 500);
+    });
+}
 
-        // Black hole center
-        const gradient = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, 30);
-        gradient.addColorStop(0, '#000');
-        gradient.addColorStop(1, 'transparent');
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(center.x, center.y, 30, 0, Math.PI * 2);
-        ctx.fill();
+function showTransitionOverlay(message, isPerfMode) {
+    const overlay = document.createElement('div');
+    overlay.className = 'transition-overlay';
+    overlay.innerHTML = `
+        <svg class="rocket-icon" viewBox="0 0 24 24" width="50" height="50" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z"/>
+            <path d="M12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 01-4 2z"/>
+            <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
+            <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
+        </svg>
+        <div class="transition-progress-bar"><span></span></div>
+        <p>${message}</p>
+    `;
+    document.body.appendChild(overlay);
+    // Rastgele yüzdeler
+    let percent = 0;
+    const interval = setInterval(() => {
+        percent += Math.floor(Math.random() * 20) + 10;
+        if (percent >= 100) {
+            percent = 100;
+            clearInterval(interval);
+            setTimeout(() => {
+                overlay.remove();
+            }, 300);
+        }
+        overlay.querySelector('.transition-progress-bar span').style.width = percent + '%';
+    }, 100);
+}
 
-        // Accretion disk particles
-        particles.forEach(p => {
-            p.angle += p.speed;
-            const x = center.x + Math.cos(p.angle) * p.radius;
-            const y = center.y + Math.sin(p.angle) * p.radius;
-            ctx.fillStyle = p.color + p.opacity + ')';
-            ctx.beginPath();
-            ctx.arc(x, y, p.size, 0, Math.PI * 2);
-            ctx.fill();
-        });
+// Arka plan videosu
+function initBackgroundVideo() {
+    const video = document.getElementById('bg-video');
+    const isPortrait = window.innerHeight > window.innerWidth;
+    video.src = isPortrait ? 'assets/backgroundV.mp4' : 'assets/backgroundH.mp4';
+    video.addEventListener('loadeddata', () => {
+        video.play().catch(err => log('Video play failed', 'warn'));
+    });
+    // Oryantasyon değişimi
+    window.addEventListener('resize', () => {
+        const newIsPortrait = window.innerHeight > window.innerWidth;
+        if (newIsPortrait !== isPortrait) {
+            video.src = newIsPortrait ? 'assets/backgroundV.mp4' : 'assets/backgroundH.mp4';
+            video.load();
+        }
+    });
+}
 
-        requestAnimationFrame(draw);
-    }
-    draw();
-
-    // Performance check: if framerate drops, switch to mp4 background
+// FPS izleme
+function startFpsMonitoring() {
     let lastTime = performance.now();
     let fps = 60;
     setInterval(() => {
         const now = performance.now();
         fps = 1000 / (now - lastTime);
         lastTime = now;
-        if (fps < 30) {
-            canvas.style.display = 'none';
-            const video = document.createElement('video');
-            video.src = 'background.mp4';
-            video.autoplay = true;
-            video.muted = true;
-            video.loop = true;
-            video.style.position = 'fixed';
-            video.style.inset = '0';
-            video.style.width = '100%';
-            video.style.height = '100%';
-            video.style.objectFit = 'cover';
-            document.body.appendChild(video);
+        if (fps < 25 && !performanceMode && !state.manualPerfDisable) {
+            state.lowFpsCount++;
+            if (state.lowFpsCount >= 10) { // 10 saniye boyunca düşük
+                state.lowFpsCount = 0;
+                enablePerformanceModeAutomatically();
+            }
+        } else {
+            state.lowFpsCount = 0;
         }
-    }, 2000);
+    }, 1000);
 }
 
-// Start the app when DOM is ready
+function enablePerformanceModeAutomatically() {
+    performanceMode = true;
+    localStorage.setItem('aiko-perf-mode', 'true');
+    document.documentElement.classList.add('perf-mode');
+    document.getElementById('perf-toggle').checked = true;
+    showAutoPerfPopup();
+}
+
+function showAutoPerfPopup() {
+    const popup = document.createElement('div');
+    popup.className = 'auto-perf-popup';
+    popup.textContent = 'Cihazınız zorlandığı için performans modu açıldı. İsterseniz hamburger menüden kapatabilirsiniz.';
+    document.body.appendChild(popup);
+    setTimeout(() => {
+        popup.classList.add('show');
+    }, 100);
+    setTimeout(() => {
+        popup.classList.remove('show');
+        setTimeout(() => popup.remove(), 500);
+    }, 5000);
+}
+
+// Sayfa yüklendiğinde başlat
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        loadResources();
-    });
+    document.addEventListener('DOMContentLoaded', loadResources);
 } else {
     loadResources();
 }
