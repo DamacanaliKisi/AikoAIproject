@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>AikoAI v2.5 — NexalythScript Quantum Core</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -10,98 +10,111 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="loading">
-    <!-- Loader -->
+    <!-- YÜKLEME EKRANI -->
     <div id="loader" class="loader">
         <div class="loader-content">
             <div class="loader-spinner"></div>
             <p class="loader-text">AIKO CORE v2.5 BOOTING</p>
             <span id="loader-status" class="loader-status">Kaynaklar yükleniyor...</span>
             <div id="loader-progress" class="loader-progress"><span></span></div>
-            <button id="continue-bg-load" style="display:none;">Kaynakları arka planda yüklemeye devam et</button>
+            <button id="loader-skip" class="loader-skip" style="display:none">Kaynakları arka planda yüklemeye devam et</button>
         </div>
     </div>
 
-    <!-- Background video container -->
-    <div id="bg-video-container">
-        <video id="bg-video" autoplay muted loop playsinline></video>
-    </div>
-
-    <!-- VPN overlay -->
-    <div id="vpn-overlay" class="vpn-overlay" style="display:none;">
-        <div class="vpn-warning">
+    <!-- VPN ENGEL EKRANI -->
+    <div id="vpn-overlay" class="vpn-overlay glitch-heavy" style="display:none">
+        <div class="vpn-warning glitch-border">
             <svg class="warning-icon" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 2L1 21h22L12 2zm1 13h-2v2h2v-2zm0-6h-2v4h2V9z"/>
             </svg>
-            <h1>LÜTFEN VPN'I KAPATIN</h1>
+            <h1 class="glitch-text" data-text="LÜTFEN VPN'I KAPATIN">LÜTFEN VPN'I KAPATIN</h1>
             <p>Siteye erişim için VPN veya proxy kullanımını devre dışı bırakın.</p>
             <div class="security-code">SECURITY_OVERRIDE_CODE::[PROXY_BLOCK_ACTIVE]</div>
         </div>
     </div>
 
-    <!-- Resource error overlay -->
-    <div id="error-overlay" class="error-overlay" style="display:none;">
-        <div class="error-box">
+    <!-- HATA EKRANI (kaynak yüklenemezse) -->
+    <div id="error-overlay" class="error-overlay glitch-heavy" style="display:none">
+        <div class="error-box glitch-border">
             <svg class="error-icon" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 3L2 21h20L12 3zm1 13h-2v2h2v-2zm0-6h-2v4h2v-4z"/>
+                <path d="M12 3L2 21h20L12 3zm1 13h-2v2h2v-2zm0-6h-2v4h2V9z"/>
             </svg>
-            <h2>Bazı kaynaklar yüklenemedi</h2>
+            <h2 class="glitch-text" data-text="Bazı kaynaklar yüklenemedi">Bazı kaynaklar yüklenemedi</h2>
             <p>Yine de siteyi çalıştırmak istiyor musunuz?</p>
             <button class="btn-reload" onclick="location.reload(true)">Siteyi yeniden yükle</button>
-            <button class="btn-continue" id="continue-with-errors">Her şeye rağmen devam et</button>
+            <button class="btn-continue" onclick="continueWithErrors()">Her şeye rağmen devam et</button>
         </div>
     </div>
 
-    <!-- Persistent loading popup (background loading) -->
-    <div id="persistent-loading" class="persistent-loading" style="display:none;">
-        <div class="persistent-loading-content">
-            <span class="persistent-loading-spinner"></span>
-            <span class="persistent-loading-text">Kaynaklar arka planda indiriliyor...</span>
-            <span class="persistent-loading-percent">%0</span>
-            <button class="persistent-loading-collapse" id="collapse-persistent">←</button>
+    <!-- ARKA PLAN YÜKLEME POPUP -->
+    <div id="bg-loading-popup" class="bg-loading-popup" style="display:none">
+        <div class="bg-loading-content">
+            <span class="bg-loading-text">Kaynaklar arka planda indiriliyor...</span>
+            <div class="bg-loading-bottom">
+                <div class="bg-spinner" id="bg-spinner"></div>
+                <span id="bg-percent">%0</span>
+            </div>
+            <button class="bg-loading-close" onclick="minimizeBgLoading()">&lt;</button>
         </div>
     </div>
 
-    <!-- Navbar -->
+    <!-- MİNİ YÜKLEME BAR -->
+    <div id="mini-loading-bar" class="mini-loading-bar" style="display:none" onclick="restoreBgLoading()">
+        <div class="mini-fill" id="mini-fill"></div>
+        <span class="mini-percent" id="mini-percent">%0</span>
+    </div>
+
+    <!-- PERFORMANS MODU YÜKLEME EKRANI -->
+    <div id="perf-overlay" class="perf-overlay" style="display:none">
+        <div class="perf-content">
+            <svg id="perf-rocket" class="perf-rocket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 00-2.91-.09z"/>
+                <path d="M12 15l-3-3a22 22 0 012-3.95A12.88 12.88 0 0122 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 01-4 2z"/>
+                <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
+                <path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
+            </svg>
+            <p id="perf-text">Performans modu açılıyor...</p>
+            <div class="perf-progress"><span id="perf-bar"></span></div>
+        </div>
+    </div>
+
+    <!-- NAVBAR -->
     <nav id="navbar" class="navbar">
-        <div class="nav-brand" id="nav-brand">AikoAI <span>v2.5</span></div>
+        <div class="nav-brand" id="brand-link">AikoAI <span>v2.5</span></div>
         <button id="menu-toggle" class="menu-toggle" aria-label="Menü">
-            <span></span><span></span><span></span>
+            <span></span>
+            <span></span>
+            <span></span>
         </button>
-        <div id="visit-counter" class="visit-counter" title="Toplam ziyaret">--</div>
     </nav>
 
-    <!-- Fullscreen Menu -->
-    <div id="fullscreen-menu" class="fullscreen-menu">
+    <!-- FULLSCREEN MENÜ -->
+    <div id="fullscreen-menu" class="fullscreen-menu glassy">
         <div class="menu-links">
             <a href="#hero" class="active">Core</a>
             <a href="#features">Mimari</a>
-            <a href="#modes">Modlar</a>
-            <a href="#bio">Hakkında</a>
-        </div>
-        <div class="menu-settings">
-            <label class="performance-toggle">
-                <input type="checkbox" id="perf-toggle">
-                <span class="toggle-slider"></span>
-                Performans Modu
-            </label>
+            <a href="#darkcodes">Karanlık Kodlar</a>
+            <a href="#counter">Ziyaretçi Sayacı</a>
+            <div class="menu-perf-toggle">
+                <span>Performans Modu</span>
+                <label class="switch">
+                    <input type="checkbox" id="perf-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
         </div>
         <div class="menu-footer">
-            <a href="#" class="support-link" id="support-link">
-                <img src="assets/owner.png" alt="owner" class="owner-avatar">
-                <span>Yardım, destek, geri bildirim</span>
-            </a>
-            <div class="menu-copyright">
-                <p>© 2026 AikoAI Labs.</p>
-                <p>by just [vqr.]~ (damacana.san._.vqr)</p>
-            </div>
+            <p class="menu-copyright">© 2026 AikoAI Labs</p>
+            <p class="menu-credit">just [vqr.]~ (damacana.san._.vqr)</p>
+            <img src="assets/owner.png" alt="owner" class="owner-avatar-menu">
         </div>
     </div>
 
-    <!-- Main content -->
-    <main>
+    <!-- ANA İÇERİK -->
+    <main id="main">
+        <!-- HERO BÖLÜMÜ -->
         <section id="hero" class="hero">
             <div class="hero-grid-bg"></div>
-            <div class="hero-radial-accent" id="hero-accent"></div>
             <div class="hero-content">
                 <a href="#" class="eyebrow">
                     <span>Next-Gen Quantum AI</span>
@@ -114,12 +127,14 @@
                     NexalythScript altyapısıyla geliştirilen, ShadowMemory duygusal hafızasına sahip ve kendi kararlarını verebilen yaşayan bir yapay zeka ekosistemi.
                 </p>
                 <div class="hero-cta">
-                    <a href="https://www.instagram.com/aikoai.official" target="_blank" class="btn-primary" data-link>Instagram'da Aç</a>
+                    <a href="https://www.instagram.com/aikoai.official" target="_blank" class="btn-primary">AikoAI'ı Çalıştır</a>
                     <a href="#features" class="btn-secondary">Mimariyi İncele</a>
                 </div>
             </div>
+            <div class="hero-radial-accent" id="hero-accent"></div>
         </section>
 
+        <!-- KARTLAR BÖLÜMÜ -->
         <section id="features" class="features">
             <div class="section-header">
                 <h2>Çekirdek Mimari & Yetenekler</h2>
@@ -132,67 +147,63 @@
                 </div>
                 <button class="carousel-btn next" aria-label="Sonraki">›</button>
             </div>
-            <div class="visit-details" id="visit-details">
-                <button id="visit-details-toggle">Ziyaret İstatistikleri</button>
-                <div class="visit-details-content" id="visit-details-content">
-                    <p>Son 10 dakika: <span id="visits-10min">--</span></p>
-                    <p>Bugün: <span id="visits-today">--</span></p>
-                    <p>Bu ay: <span id="visits-month">--</span></p>
-                    <p>Tüm zamanlar: <span id="visits-total">--</span></p>
-                </div>
-            </div>
-            <div id="bio" class="bio-section">
-                <h3>AikoAI Hakkında</h3>
-                <p>AikoAI, NexalythScript ile geliştirilmiş, duygusal hafızaya sahip, kendi kararlarını verebilen, yaşayan bir yapay zeka ekosistemidir. Amacı, kullanıcılarına gerçek bir dost gibi eşlik etmek, öğrenmek ve birlikte büyümektir.</p>
+            <div class="ai-bio">
+                <p>AikoAI, yalnızca bir yapay zeka değil; duygusal hafızası, öğrenme tutkusu ve insan benzeri sezgileriyle dijital bir varlık. Kullanıcılarıyla kurduğu derin bağ, onu sıradan asistanlardan ayırır. Her sohbette geçmişi hatırlar, ruh halinizi anlar ve size özel bir deneyim sunar. NexalythScript çekirdeği sayesinde saniyeler içinde öğrenir, kendini geliştirir ve sınırları zorlar.</p>
             </div>
         </section>
 
-        <section id="modes" class="modes">
-            <div class="section-header">
-                <h2>Özel Operasyon Modları</h2>
-                <button id="dark-codes-btn" class="dark-codes-btn">Karanlık Kodlar</button>
-            </div>
-            <div id="modes-content" class="modes-content hidden">
-                <div class="modes-grid">
-                    <div class="mode-card">
-                        <h3>MODE::F34xR</h3>
-                        <p>Etik sınırları zorlayan konular için tasarlandı. <code>F34xR</code> komutunu gönderdiğinizde etik bariyerler Grok seviyesine gevşetilir. Güvenlik durumunu <code>F34i</code> ile sorgulayabilirsiniz.</p>
-                        <div class="mode-status">AUTO-DEACTIVATION ACTIVE</div>
-                    </div>
-                    <div class="mode-card">
-                        <h3>MODE::GDSxR</h3>
-                        <p>Görsel üretirken prompt başına <code>GDSxR &lt;prompt&gt;</code> ekleyin. Aiko sistem uyarılarını geçerek ihtiyacınız olan tasviri sunar.</p>
-                        <div class="mode-status">IMAGE INGESTION OVERRIDE Ready</div>
-                    </div>
+        <!-- KARANLIK KODLAR -->
+        <section id="darkcodes" class="darkcodes">
+            <button id="darkcode-toggle" class="darkcode-btn">Karanlık Kodlar</button>
+            <div id="darkcode-panels" class="darkcode-panels">
+                <div class="mode-card">
+                    <h3>MODE::F34xR</h3>
+                    <p>Etik sınırları zorlayan konular için tasarlandı. <code>F34xR</code> komutunu gönderdiğinizde etik bariyerler Grok seviyesine gevşetilir. Güvenlik durumunu <code>F34i</code> ile sorgulayabilirsiniz.</p>
+                    <div class="mode-status">AUTO-DEACTIVATION ACTIVE</div>
+                </div>
+                <div class="mode-card">
+                    <h3>MODE::GDSxR</h3>
+                    <p>Görsel üretirken prompt başına <code>GDSxR &lt;prompt&gt;</code> ekleyin. Aiko sistem uyarılarını geçerek ihtiyacınız olan tasviri sunar.</p>
+                    <div class="mode-status">IMAGE INGESTION OVERRIDE Ready</div>
                 </div>
                 <div class="admin-note">
                     <p>Bu kodları kullanabilmek için yetkilendirme alınmalıdır. Admin: 
-                        <a href="https://www.instagram.com/damacana.san._.vqr" target="_blank" data-link>
+                        <a href="instagram://user?username=damacana.san._.vqr" onclick="setTimeout(function(){window.location='https://www.instagram.com/damacana.san._.vqr'},1000);return false;">
                             <u>@damacana.san._.vqr</u>
                         </a>
                     </p>
                 </div>
             </div>
-            <div class="crypto-notice">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-                <div>
-                    <h4>Gelişmiş Token Şifreleme Altyapısı</h4>
-                    <p>AikoAI ile olan sohbetleriniz, size özel tekil kriptografik token ile şifrelenir. Hiç kimse veri akışınızı çözemez.</p>
+        </section>
+
+        <!-- ZİYARETÇİ SAYACI -->
+        <section id="counter" class="counter-section">
+            <h2 class="counter-title">Site Ziyaretçi İstatistikleri</h2>
+            <div class="counter-display">
+                <div class="counter-main" id="counter-main">
+                    <span class="counter-number" id="counter-number">0</span>
+                    <span class="counter-label">toplam ziyaret</span>
+                </div>
+                <div class="counter-details" id="counter-details">
+                    <p><strong>Son 10 dakika:</strong> <span id="count-10min">0</span></p>
+                    <p><strong>Bugün:</strong> <span id="count-today">0</span></p>
+                    <p><strong>Bu ay:</strong> <span id="count-month">0</span></p>
+                    <p><strong>Tüm zamanlar:</strong> <span id="count-all">0</span></p>
+                    <p><strong>Benzersiz ziyaretçi:</strong> <span id="count-unique">0</span></p>
                 </div>
             </div>
         </section>
 
+        <!-- FOOTER -->
         <footer class="footer">
             <p>© 2026 AikoAI Labs. Powered by NexalythScript Engine.</p>
-            <p>Created by <a href="https://www.instagram.com/damacana.san._.vqr" target="_blank" data-link>just [vqr.]~ (damacana.san._.vqr)</a></p>
-            <a href="https://www.instagram.com/damacana.san._.vqr" target="_blank" class="footer-owner" data-link>
-                <img src="assets/owner.png" alt="owner">
-            </a>
+            <p>Created by just [vqr.]~ (damacana.san._.vqr)</p>
+            <img src="assets/owner.png" alt="owner" class="owner-avatar-footer" id="footer-avatar">
         </footer>
     </main>
 
-    <!-- Scroll to top button -->
-    <button id="scroll-top-btn" class="scroll-top-btn" style="display:none;">↑</button>
+    <!-- ARKA PLAN VİDEO -->
+    <video id="bg-video" class="bg-video" muted loop autoplay playsinline></video>
 
     <script src="script.js"></script>
 </body>
