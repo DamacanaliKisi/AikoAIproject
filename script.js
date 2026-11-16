@@ -6,7 +6,6 @@ const AIKO_CONFIG = {
         'assets/backgroundV.mp4',
         'assets/backgroundH.mp4'
     ],
-    vpnEndpoint: 'https://api.vpndetection.io/',
     counterApi: 'https://countapi.mileshilliard.com/api/v1/hit/aikoai_quantum_core/visits',
     ipEndpoint: 'https://ipwho.is/',
     maxRetries: 3,
@@ -20,12 +19,30 @@ const AIKO_CONFIG = {
     instagramAiko: 'aikoai.official',
     instagramOwner: 'just._.vqr',
     supportedLangs: ['tr', 'en'],
-    defaultLang: 'tr'
+    defaultLang: 'tr',
+    vpnKeywords: [
+        'vpn', 'm247', 'nordvpn', 'expressvpn', 'surfshark', 'cyberghost',
+        'private internet', 'ipvanish', 'protonvpn', 'purevpn', 'torguard',
+        'digitalocean', 'amazon', 'aws', 'linode', 'vultr', 'hetzner',
+        'ovh', 'contabo', 'choopa', 'leaseweb', 'hostinger', 'godaddy',
+        'cloudflare', 'google cloud', 'azure', 'microsoft', 'oracle cloud',
+        'colocation', 'datacenter', 'data center', 'server', 'hosting'
+    ],
+    torKeywords: ['tor', 'tor-exit', 'torexit', 'torservers'],
+    botPatterns: [
+        'bot', 'crawler', 'spider', 'scraper',
+        'curl/', 'wget/', 'python-requests', 'python-urllib',
+        'postmanruntime', 'insomnia', 'axios/',
+        'headlesschrome', 'phantomjs', 'selenium', 'playwright', 'puppeteer',
+        'facebookexternalhit', 'twitterbot', 'linkedinbot'
+    ]
 };
 
 const state = {
     isLoading: true,
     isVpnBlocked: false,
+    isTor: false,
+    isBot: false,
     isMenuOpen: false,
     isPerformanceMode: false,
     autoPerfDisabled: false,
@@ -36,7 +53,6 @@ const state = {
     resourceRetryCount: 0,
     resourceFailures: [],
     fpsHistory: [],
-    perfCheckStart: null,
     bgLoadingActive: false,
     bgLoadingDone: false,
     counterOpen: false,
@@ -45,8 +61,20 @@ const state = {
     currentVideoSrc: '',
     isHeroExpanded: false,
     currentLang: 'tr',
-    vpnChecked: false,
-    apiHealthy: true
+    counterFailed: false,
+    ipFailed: false
+};
+
+let cachedIpData = null;
+let ipFetchPromise = null;
+
+window.__aikoDebug = false;
+window.__aikoDiagnostics = {
+    ip: 'pending',
+    vpn: 'pending',
+    counter: 'pending',
+    bot: 'pending',
+    errors: []
 };
 
 const i18n = {
@@ -80,7 +108,7 @@ const i18n = {
         'loader.security': 'Güvenlik kontrolü yapılıyor...',
         'loader.download': 'Kaynaklar indiriliyor...',
         'loader.integrity': 'Dosya bütünlüğü kontrol ediliyor...',
-        'loader.ready': 'Hazır!'
+        'loader.ready': 'Hazır.'
     },
     en: {
         'menu.core': 'Core',
@@ -112,12 +140,13 @@ const i18n = {
         'loader.security': 'Running security checks...',
         'loader.download': 'Downloading resources...',
         'loader.integrity': 'Verifying file integrity...',
-        'loader.ready': 'Ready!'
+        'loader.ready': 'Ready.'
     }
 };
 
 function log(message, type = 'info') {
-    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') return;
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (!isLocal && !window.__aikoDebug) return;
     const styles = {
         info: 'color: #00f0ff; font-weight: bold;',
         success: 'color: #39ff14; font-weight: bold;',
@@ -150,13 +179,11 @@ function getStorage(key, defaultValue = null) {
 function setStorage(key, value) {
     try {
         localStorage.setItem(key, JSON.stringify(value));
-    } catch (e) {
-        log('localStorage write failed', 'warn');
-    }
+    } catch {}
 }
 
 function t(key) {
-    return i18n[state.currentLang][key] || i18n[state.defaultLang][key] || key;
+    return i18n[state.currentLang][key] || i18n[AIKO_CONFIG.defaultLang][key] || key;
 }
 
 function applyLanguage(lang) {
@@ -170,55 +197,110 @@ function applyLanguage(lang) {
     setStorage('aiko-lang', lang);
 }
 
+function mapCountryToLang(countryCode) {
+    const cc = (countryCode || '').toLowerCase();
+    if (cc === 'tr') return 'tr';
+    const englishCountries = ['us', 'gb', 'au', 'ca', 'nz', 'ie', 'za', 'sg', 'in', 'ph'];
+    if (englishCountries.includes(cc)) return 'en';
+    return AIKO_CONFIG.defaultLang;
+}
+
+async function fetchIpData() {
+    if (cachedIpData) return cachedIpData;
+    if (ipFetchPromise) return ipFetchPromise;
+    ipFetchPromise = (async () => {
+        const res = await fetch(AIKO_CONFIG.ipEndpoint, { cache: 'no-store' });
+        if (!res.ok) throw new Error('ipwho.is HTTP ' + res.status);
+        const data = await res.json();
+        if (data.success === false) {
+            throw new Error('ipwho.is returned failure');
+        }
+        cachedIpData = data;
+        ipFetchPromise = null;
+        return data;
+    })();
+    return ipFetchPromise;
+}
+
 async function detectLanguage() {
     try {
-        const response = await fetch(AIKO_CONFIG.ipEndpoint);
-        const data = await response.json();
-        const country = (data.country_code || '').toLowerCase();
-        if (country === 'tr') return 'tr';
-        if (AIKO_CONFIG.supportedLangs.includes(country)) return country;
-        return AIKO_CONFIG.defaultLang;
+        const data = await fetchIpData();
+        return mapCountryToLang(data.country_code);
     } catch {
         return AIKO_CONFIG.defaultLang;
     }
 }
 
+function isBot() {
+    if (navigator.webdriver) return true;
+    const ua = (navigator.userAgent || '').toLowerCase();
+    return AIKO_CONFIG.botPatterns.some(p => ua.includes(p));
+}
+
+function analyzeConnection(ipData) {
+    const connection = (ipData && ipData.connection) || {};
+    const isp = (connection.isp || '').toLowerCase();
+    const org = (connection.org || '').toLowerCase();
+    const domain = (connection.domain || '').toLowerCase();
+    const haystack = isp + ' ' + org + ' ' + domain;
+
+    const isTor = AIKO_CONFIG.torKeywords.some(k => haystack.includes(k));
+    const isVpn = AIKO_CONFIG.vpnKeywords.some(k => haystack.includes(k));
+
+    return {
+        isVpn: isVpn || isTor,
+        isTor,
+        isp: connection.isp || 'unknown',
+        org: connection.org || 'unknown'
+    };
+}
+
 async function checkApis() {
-    let vpnOk = false;
-    let counterOk = false;
+    window.__aikoDiagnostics.ip = 'pending';
+    window.__aikoDiagnostics.vpn = 'pending';
+    window.__aikoDiagnostics.counter = 'pending';
+    window.__aikoDiagnostics.bot = 'pending';
+    window.__aikoDiagnostics.errors = [];
 
+    let ipData = null;
     try {
-        const ipRes = await fetch(AIKO_CONFIG.ipEndpoint);
-        const ipData = await ipRes.json();
-        const ip = ipData.ip;
-        if (ip) {
-            const vpnRes = await fetch(AIKO_CONFIG.vpnEndpoint + ip);
-            if (vpnRes.ok) {
-                const vpnData = await vpnRes.json();
-                state.isVpnBlocked = vpnData.is_vpn === true;
-                vpnOk = true;
-            }
-        }
+        ipData = await fetchIpData();
+        window.__aikoDiagnostics.ip = 'ok (' + (ipData.ip || '?') + ' / ' + (ipData.country_code || '?') + ')';
+        log('IP check OK: ' + ipData.ip, 'success');
     } catch (e) {
-        log('VPN check failed', 'warn');
-    }
-
-    try {
-        const res = await fetch(AIKO_CONFIG.counterApi, { method: 'GET' });
-        if (res.ok) {
-            const data = await res.json();
-            state.totalVisits = data.value || 1;
-            counterOk = true;
-        }
-    } catch (e) {
-        log('Counter check failed', 'warn');
-    }
-
-    if (!vpnOk || !counterOk) {
-        state.apiHealthy = false;
-        showErrorOverlay('Gerekli güvenlik hizmetlerinden biri yanıt vermiyor. Lütfen daha sonra tekrar deneyin.');
+        window.__aikoDiagnostics.ip = 'FAILED: ' + e.message;
+        window.__aikoDiagnostics.errors.push({ service: 'ip', error: e.message });
+        log('IP check failed: ' + e.message, 'error');
+        showErrorOverlay('Güvenlik hizmetlerine şu anda ulaşılamıyor. Bu hizmetler olmadan site görüntülenemez. Lütfen biraz sonra tekrar deneyin.');
         return false;
     }
+
+    const analysis = analyzeConnection(ipData);
+    state.isVpnBlocked = analysis.isVpn;
+    state.isTor = analysis.isTor;
+    window.__aikoDiagnostics.vpn = analysis.isTor ? 'tor detected' : (analysis.isVpn ? 'vpn/proxy detected' : 'clean');
+    log('VPN analysis: ' + window.__aikoDiagnostics.vpn + ' (ISP: ' + analysis.isp + ')');
+
+    state.isBot = isBot();
+    window.__aikoDiagnostics.bot = state.isBot ? 'detected' : 'human';
+
+    try {
+        const res = await fetch(AIKO_CONFIG.counterApi, { method: 'GET', cache: 'no-store' });
+        if (!res.ok) throw new Error('counter HTTP ' + res.status);
+        const data = await res.json();
+        state.totalVisits = (typeof data.value === 'number') ? data.value : 1;
+        window.__aikoDiagnostics.counter = 'ok (' + state.totalVisits + ')';
+        log('Counter OK: ' + state.totalVisits, 'success');
+    } catch (e) {
+        state.counterFailed = true;
+        window.__aikoDiagnostics.counter = 'FAILED: ' + e.message;
+        window.__aikoDiagnostics.errors.push({ service: 'counter', error: e.message });
+        log('Counter failed: ' + e.message, 'warn');
+        const fallback = getStorage('aiko-total-visits-fallback', 0) + 1;
+        setStorage('aiko-total-visits-fallback', fallback);
+        state.totalVisits = fallback;
+    }
+
     return true;
 }
 
@@ -243,13 +325,43 @@ function showVpnWarning() {
     createVHSOverlay();
 }
 
-async function loadResources() {
+function createVHSOverlay() {
+    if (document.querySelector('.vhs-overlay')) return;
+    const vhs = document.createElement('div');
+    vhs.className = 'vhs-overlay';
+    document.body.appendChild(vhs);
+}
+
+function showWarningNotification(message, duration = 6000) {
+    const popup = document.createElement('div');
+    popup.style.cssText = `
+        position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+        background: rgba(30, 5, 5, 0.85); backdrop-filter: blur(20px);
+        border: 1px solid var(--danger-border); border-radius: 12px;
+        padding: 14px 22px; color: var(--text); z-index: 10002;
+        font-size: 13px; text-align: center; font-family: var(--font-main);
+        max-width: 90%; box-shadow: 0 0 30px var(--danger-glow);
+        transition: opacity 0.5s, transform 0.5s;
+    `;
+    popup.textContent = message;
+    document.body.appendChild(popup);
+    setTimeout(() => {
+        popup.style.opacity = '0';
+        popup.style.transform = 'translateX(-50%) translateY(20px)';
+        setTimeout(() => popup.remove(), 500);
+    }, duration);
+}
+
+function updateLoaderStatus(text, percent) {
     const statusEl = document.getElementById('loader-status');
     const progressBar = document.querySelector('.loader-progress span');
+    if (statusEl) statusEl.textContent = text;
+    if (progressBar && typeof percent === 'number') progressBar.style.width = `${percent}%`;
+}
+
+async function loadResources() {
     const total = AIKO_CONFIG.resources.length;
     let loaded = 0;
-
-    if (statusEl) statusEl.textContent = t('loader.download');
 
     const sorted = [...AIKO_CONFIG.resources].sort((a, b) => {
         if (a.endsWith('.mp4') && !b.endsWith('.mp4')) return 1;
@@ -261,10 +373,10 @@ async function loadResources() {
         try {
             await loadSingleResource(resource);
             loaded++;
-            const percent = Math.floor((loaded / total) * 100);
-            if (progressBar) progressBar.style.width = `${percent}%`;
+            const percent = 10 + Math.floor((loaded / total) * 80);
+            updateLoaderStatus(t('loader.download'), percent);
         } catch (err) {
-            log(`Resource failed: ${resource}`, 'warn');
+            log('Resource failed: ' + resource, 'warn');
             state.resourceFailures.push(resource);
         }
     }
@@ -274,14 +386,7 @@ async function loadResources() {
         state.resourceFailures = [];
         await delay(1000);
         await loadResources();
-        return;
     }
-
-    if (state.resourceFailures.length > 0) {
-        showErrorOverlay('Bazı kaynaklar yüklenemedi. Site sınırlı işlevsellikle açılacak.');
-    }
-
-    finishLoading();
 }
 
 async function loadSingleResource(resource) {
@@ -290,7 +395,7 @@ async function loadSingleResource(resource) {
     if (cached) return cached;
 
     const response = await fetch(resource, { cache: 'force-cache' });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) throw new Error('HTTP ' + response.status);
     const blob = await response.blob();
     await cacheResource(cacheKey, blob);
     return blob;
@@ -318,7 +423,14 @@ function finishLoading() {
     document.body.classList.remove('loading');
     initBackgroundVideo();
     initApp();
-    if (state.isVpnBlocked) showVpnWarning();
+    if (state.isVpnBlocked) {
+        setTimeout(() => showVpnWarning(), 800);
+    }
+    setTimeout(() => {
+        if (state.counterFailed) {
+            showWarningNotification('Sayaç hizmetine ulaşılamıyor. Yerel sayaç kullanılıyor.');
+        }
+    }, 1500);
     setTimeout(() => {
         if (state.videoElement) state.videoElement.style.opacity = '1';
     }, 500);
@@ -498,6 +610,7 @@ function setupHeroAnimation() {
         const wrapperHeight = wrapper.offsetHeight;
         const viewportHeight = window.innerHeight;
         const scrollable = wrapperHeight - viewportHeight;
+        if (scrollable <= 0) return;
         const scrolled = Math.min(Math.max(-rect.top / scrollable, 0), 1);
         const accent = document.getElementById('hero-accent');
         const content = document.querySelector('.hero-content');
@@ -641,27 +754,64 @@ function setupFPSMonitoring() {
 }
 
 function setupCopyProtection() {
-    document.addEventListener('contextmenu', (e) => e.preventDefault());
-    document.addEventListener('copy', (e) => e.preventDefault());
-    document.addEventListener('cut', (e) => e.preventDefault());
-    document.addEventListener('selectstart', (e) => e.preventDefault());
-    document.addEventListener('dragstart', (e) => e.preventDefault());
+    document.addEventListener('contextmenu', (e) => {
+        if (window.__aikoDebug) return;
+        e.preventDefault();
+    });
+    document.addEventListener('copy', (e) => {
+        if (window.__aikoDebug) return;
+        e.preventDefault();
+    });
+    document.addEventListener('cut', (e) => {
+        if (window.__aikoDebug) return;
+        e.preventDefault();
+    });
+    document.addEventListener('selectstart', (e) => {
+        if (window.__aikoDebug) return;
+        e.preventDefault();
+    });
+    document.addEventListener('dragstart', (e) => {
+        if (window.__aikoDebug) return;
+        e.preventDefault();
+    });
     document.addEventListener('keydown', (e) => {
+        if (window.__aikoDebug) return;
         if (e.key === 'F12') { e.preventDefault(); return false; }
         if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) { e.preventDefault(); return false; }
         if (e.ctrlKey && e.key === 'u') { e.preventDefault(); return false; }
         if (e.ctrlKey && e.key === 's') { e.preventDefault(); return false; }
         if (e.ctrlKey && e.key === 'p') { e.preventDefault(); return false; }
     });
-    setInterval(() => {
-        const start = performance.now();
-        debugger;
-        const end = performance.now();
-        if (end - start > 100) {
-            document.body.innerHTML = '';
-            document.body.style.background = '#000';
+}
+
+function setupDebugMode() {
+    let buffer = '';
+    let resetTimer = null;
+    document.addEventListener('keydown', (e) => {
+        if (e.key.length !== 1) return;
+        clearTimeout(resetTimer);
+        buffer += e.key.toLowerCase();
+        if (buffer.length > 40) buffer = buffer.slice(-40);
+        if (buffer.includes('test112236')) {
+            if (!window.__aikoDebug) {
+                window.__aikoDebug = true;
+                console.log('%c[AIKO] Debug mode ENABLED', 'color: #39ff14; font-weight: bold;');
+                console.log('%c[AIKO] Diagnostics:', 'color: #00f0ff; font-weight: bold;', window.__aikoDiagnostics);
+            }
+            buffer = '';
         }
-    }, 1000);
+        resetTimer = setTimeout(() => { buffer = ''; }, 5000);
+    });
+}
+
+function setupDiagnostics() {
+    window.__aikoDiagnostics = {
+        ip: 'pending',
+        vpn: 'pending',
+        counter: 'pending',
+        bot: 'pending',
+        errors: []
+    };
 }
 
 function setupLinkTransitions() {
@@ -728,13 +878,6 @@ function setupCounterUI() {
     });
 }
 
-function createVHSOverlay() {
-    if (document.querySelector('.vhs-overlay')) return;
-    const vhs = document.createElement('div');
-    vhs.className = 'vhs-overlay';
-    document.body.appendChild(vhs);
-}
-
 async function recordVisit() {
     const now = Date.now();
     const tenMinVisits = getStorage('aiko-visits-10min', []);
@@ -772,9 +915,8 @@ function updateCounterStats() {
 
 async function trackUniqueVisitor() {
     try {
-        const response = await fetch(AIKO_CONFIG.ipEndpoint);
-        const data = await response.json();
-        const ip = data.ip || 'unknown';
+        const ipData = await fetchIpData();
+        const ip = ipData.ip || 'unknown';
         const visitedIPs = getStorage('aiko-visited-ips', []);
         if (!visitedIPs.includes(ip)) {
             visitedIPs.push(ip);
@@ -803,26 +945,29 @@ function setupLanguage() {
     }
 }
 
-async function initApp() {
+function initApp() {
     setupNavbar();
     setupMenu();
     setupHeroAnimation();
     setupScrollTopButton();
     setupPerformanceMode();
     setupFPSMonitoring();
-    setupCopyProtection();
     setupLinkTransitions();
     setupPageShow();
     setupDarkCodes();
     setupCounterUI();
     setupLanguage();
     initCarousel();
-    await trackUniqueVisitor();
-    await recordVisit();
+    trackUniqueVisitor();
+    recordVisit();
     updateCounterStats();
 }
 
 async function boot() {
+    setupDiagnostics();
+    setupCopyProtection();
+    setupDebugMode();
+
     const savedLang = getStorage('aiko-lang', null);
     if (savedLang && AIKO_CONFIG.supportedLangs.includes(savedLang)) {
         state.currentLang = savedLang;
@@ -832,18 +977,22 @@ async function boot() {
     }
     applyLanguage(state.currentLang);
 
-    const statusEl = document.getElementById('loader-status');
-    if (statusEl) statusEl.textContent = t('loader.security');
+    updateLoaderStatus(t('loader.security'), 5);
     await delay(600);
 
     const apisOk = await checkApis();
     if (!apisOk) return;
 
-    if (statusEl) statusEl.textContent = t('loader.download');
+    updateLoaderStatus(t('loader.download'), 10);
     await loadResources();
 
-    if (statusEl) statusEl.textContent = t('loader.integrity');
+    updateLoaderStatus(t('loader.integrity'), 92);
     await delay(600);
+
+    updateLoaderStatus(t('loader.ready'), 100);
+    await delay(300);
+
+    finishLoading();
 }
 
 document.addEventListener('DOMContentLoaded', boot);
