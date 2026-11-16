@@ -1,2 +1,4 @@
-# AikoAI-site
-AikoAI için hazırlanmış web sitesi
+# AikoAIProject
+AikoAI Resmi Websitesi
+---
+AikoAI Official Website
