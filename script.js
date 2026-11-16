@@ -933,4 +933,95 @@ function updateCounterStats() {
     if (countTodayEl) countTodayEl.textContent = todayVisits;
     if (countMonthEl) countMonthEl.textContent = monthVisits;
     if (countAllEl) countAllEl.textContent = allVisits;
-    if (
+    if (countUniqueEl) countUniqueEl.textContent = uniqueVisitors;
+    if (counterNumber) counterNumber.textContent = state.totalVisits;
+}
+
+async function trackUniqueVisitor() {
+    try {
+        const ipData = await fetchIpData();
+        const ip = ipData.ip || 'unknown';
+        const visitedIPs = getStorage('aiko-visited-ips', []);
+        if (!visitedIPs.includes(ip)) {
+            visitedIPs.push(ip);
+            setStorage('aiko-visited-ips', visitedIPs);
+            state.uniqueVisitors = visitedIPs.length;
+            return true;
+        }
+        state.uniqueVisitors = visitedIPs.length;
+        return false;
+    } catch {
+        return false;
+    }
+}
+
+function setupLanguage() {
+    const langSelect = document.getElementById('lang-select');
+    if (langSelect) {
+        langSelect.value = state.currentLang;
+        langSelect.addEventListener('change', () => {
+            document.body.style.opacity = '0';
+            setTimeout(() => {
+                applyLanguage(langSelect.value);
+                document.body.style.opacity = '1';
+            }, 300);
+        });
+    }
+}
+
+function initApp() {
+    setupNavbar();
+    setupMenu();
+    setupHeroAnimation();
+    setupScrollTopButton();
+    setupPerformanceMode();
+    setupFPSMonitoring();
+    setupLinkTransitions();
+    setupPageShow();
+    setupDarkCodes();
+    setupCounterUI();
+    setupLanguage();
+    initCarousel();
+    trackUniqueVisitor();
+    recordVisit();
+    updateCounterStats();
+}
+
+async function boot() {
+    if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+
+    setupDiagnostics();
+    setupCopyProtection();
+    setupDebugMode();
+
+    const savedLang = getStorage('aiko-lang', null);
+    if (savedLang && AIKO_CONFIG.supportedLangs.includes(savedLang)) {
+        state.currentLang = savedLang;
+    } else {
+        const detected = await detectLanguage();
+        state.currentLang = detected;
+    }
+    applyLanguage(state.currentLang);
+
+    updateLoaderStatus(t('loader.security'), 5);
+    await delay(600);
+
+    const apisOk = await checkApis();
+    if (!apisOk) return;
+
+    updateLoaderStatus(t('loader.download'), 10);
+    await loadResources();
+
+    updateLoaderStatus(t('loader.integrity'), 92);
+    await delay(600);
+
+    updateLoaderStatus(t('loader.ready'), 100);
+    await delay(300);
+
+    finishLoading();
+}
+
+document.addEventListener('DOMContentLoaded', boot);
