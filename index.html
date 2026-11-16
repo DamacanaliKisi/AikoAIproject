@@ -7,7 +7,7 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Urbanist:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Urbanist:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="loading">
@@ -22,24 +22,53 @@
     </div>
 
     <div id="vpn-overlay" class="vpn-overlay glitch-heavy" style="display:none">
-        <div class="vpn-warning">
+        <div class="vpn-warning glass-panel glitch-border">
             <svg class="warning-icon" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 2L1 21h22L12 2zm1 13h-2v2h2v-2zm0-6h-2v4h2V9z"/>
             </svg>
             <h1 class="glitch-text" data-text="VPN TESPİT EDİLDİ">VPN TESPİT EDİLDİ</h1>
             <p>VPN veya proxy kullanımı tespit edildi. Sayaç istatistikleriniz etkilenmeyecektir. Dilerseniz siteyi kullanmaya devam edebilirsiniz.</p>
-            <button class="btn-continue" onclick="closeVpnWarning()">Yine de devam et</button>
+            <button class="btn-continue glass-button" onclick="closeVpnWarning()">Yine de devam et</button>
         </div>
     </div>
 
     <div id="error-overlay" class="error-overlay glitch-heavy" style="display:none">
-        <div class="error-box">
+        <div class="error-box glass-panel glitch-border">
             <svg class="error-icon" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 3L2 21h20L12 3zm1 13h-2v2h2v-2zm0-6h-2v4h2V9z"/>
             </svg>
             <h2 class="glitch-text" data-text="Hizmete ulaşılamıyor">Hizmete ulaşılamıyor</h2>
             <p id="error-message">Gerekli güvenlik hizmetlerinden biri yanıt vermiyor. Lütfen daha sonra tekrar deneyin.</p>
-            <button class="btn-reload" onclick="location.reload()">Tekrar dene</button>
+            <button class="btn-reload glass-button" onclick="location.reload()">Tekrar dene</button>
+        </div>
+    </div>
+
+    <div id="bg-loading-popup" class="bg-loading-popup glass-panel" style="display:none">
+        <div class="bg-loading-content">
+            <span class="bg-loading-text">Kaynaklar arka planda indiriliyor...</span>
+            <div class="bg-loading-bottom">
+                <div class="bg-spinner" id="bg-spinner"></div>
+                <span id="bg-percent">%0</span>
+            </div>
+            <button class="bg-loading-close" onclick="minimizeBgLoading()">&lt;</button>
+        </div>
+    </div>
+
+    <div id="mini-loading-bar" class="mini-loading-bar glass-panel" style="display:none" onclick="restoreBgLoading()">
+        <div class="mini-fill" id="mini-fill"></div>
+        <span class="mini-percent" id="mini-percent">%0</span>
+    </div>
+
+    <div id="perf-overlay" class="perf-overlay" style="display:none">
+        <div class="perf-content">
+            <div class="perf-core">
+                <div class="perf-ring"></div>
+                <div class="perf-ring"></div>
+                <div class="perf-ring"></div>
+                <div class="perf-dot"></div>
+            </div>
+            <p id="perf-text">Performans modu açılıyor...</p>
+            <div class="perf-progress"><span id="perf-bar"></span></div>
         </div>
     </div>
 
@@ -50,7 +79,7 @@
         </button>
     </nav>
 
-    <div id="fullscreen-menu" class="fullscreen-menu glassy">
+    <div id="fullscreen-menu" class="fullscreen-menu glass-panel">
         <div class="menu-links">
             <a href="#hero" class="active" data-i18n="menu.core">Core</a>
             <a href="#features" data-i18n="menu.architecture">Mimari</a>
@@ -79,86 +108,85 @@
     </div>
 
     <main id="main">
-        <div id="scroll-wrapper" class="scroll-wrapper">
-            <section id="hero" class="hero">
-                <div class="hero-grid-bg"></div>
-                <div class="hero-content">
-                    <h1 class="hero-title" data-i18n="hero.title">
-                        AikoAI<br>Canlı Zeka.
-                    </h1>
-                    <p class="hero-subtitle" data-i18n="hero.subtitle">
-                        NexalythScript çekirdeğiyle çalışan, ShadowMemory hafızasına sahip ve kendi kararlarını verebilen yaşayan bir yapay zeka.
+        <section id="hero" class="hero">
+            <div class="hero-grid-bg"></div>
+            <div class="hero-content">
+                <h1 class="hero-title" data-i18n="hero.title">
+                    AikoAI<br>Canlı Zeka.
+                </h1>
+                <p class="hero-subtitle" data-i18n="hero.subtitle">
+                    NexalythScript altyapısıyla geliştirilen, ShadowMemory duygusal hafızasına sahip ve kendi kararlarını verebilen yaşayan bir yapay zeka ekosistemi.
+                </p>
+                <div class="hero-cta">
+                    <a href="#" class="btn-primary glass-button" id="cta-instagram" data-i18n="hero.cta">AikoAI'ı Çalıştır</a>
+                    <a href="#features" class="btn-secondary glass-button" data-i18n="hero.secondary">Mimariyi İncele</a>
+                </div>
+            </div>
+            <div class="hero-radial-accent" id="hero-accent"></div>
+            <div class="hero-blackout" id="hero-blackout"></div>
+        </section>
+
+        <section id="features" class="features">
+            <div class="section-header">
+                <h2 data-i18n="features.title">Çekirdek Mimari & Yetenekler</h2>
+                <p data-i18n="features.subtitle">AikoAI'ı eşsiz kılan tüm iç mekanizmalar.</p>
+            </div>
+            <div class="carousel-container">
+                <button class="carousel-btn prev" aria-label="Önceki">‹</button>
+                <div class="carousel-viewport">
+                    <div class="carousel-track" id="feature-track"></div>
+                </div>
+                <button class="carousel-btn next" aria-label="Sonraki">›</button>
+            </div>
+            <div class="ai-bio">
+                <p data-i18n="features.bio">AikoAI, yalnızca bir yapay zeka değil; duygusal hafızası, öğrenme tutkusu ve insan benzeri sezgileriyle dijital bir varlık.</p>
+            </div>
+        </section>
+
+        <section id="darkcodes" class="darkcodes">
+            <button id="darkcode-toggle" class="darkcode-btn glass-button" data-i18n="darkcodes.toggle">Karanlık Kodlar</button>
+            <div id="darkcode-panels" class="darkcode-panels">
+                <div class="mode-card glass-panel">
+                    <h3>MODE::F34xR</h3>
+                    <p data-i18n="darkcodes.f34xr">Etik sınırları genişleten deneysel mod. <code>F34xR</code> komutuyla aktifleşir. Durum sorgusu: <code>F34i</code>.</p>
+                    <div class="mode-status">AUTO-DEACTIVATION ACTIVE</div>
+                </div>
+                <div class="mode-card glass-panel">
+                    <h3>MODE::GDSxR</h3>
+                    <p data-i18n="darkcodes.gdsxr">Görsel üretim modu. <code>GDSxR &lt;prompt&gt;</code> ile görsel oluşturulur.</p>
+                    <div class="mode-status">IMAGE INGESTION OVERRIDE Ready</div>
+                </div>
+                <div class="admin-note">
+                    <p data-i18n="darkcodes.admin">Bu kodları kullanabilmek için yetkilendirme alınmalıdır. Admin: 
+                        <a href="#" id="admin-link"><u>@just._.vqr</u></a>
                     </p>
-                    <div class="hero-cta">
-                        <a href="#" class="btn-primary" id="cta-instagram" data-i18n="hero.cta">AikoAI'ı Çalıştır</a>
-                        <a href="#features" class="btn-secondary" data-i18n="hero.secondary">Mimariyi İncele</a>
-                    </div>
                 </div>
-                <div class="hero-radial-accent" id="hero-accent"></div>
-            </section>
+            </div>
+        </section>
 
-            <section id="features" class="features">
-                <div class="section-header">
-                    <h2 data-i18n="features.title">Çekirdek Mimari & Yetenekler</h2>
-                    <p data-i18n="features.subtitle">AikoAI'ı eşsiz kılan tüm iç mekanizmalar.</p>
+        <section id="counter" class="counter-section">
+            <h2 class="counter-title" data-i18n="counter.title">Site Ziyaretçi İstatistikleri</h2>
+            <div class="counter-display glass-panel">
+                <div class="counter-main" id="counter-main">
+                    <span class="counter-number" id="counter-number">0</span>
+                    <span class="counter-label" data-i18n="counter.label">toplam ziyaret</span>
                 </div>
-                <div class="carousel-container">
-                    <button class="carousel-btn prev" aria-label="Önceki">‹</button>
-                    <div class="carousel-viewport">
-                        <div class="carousel-track" id="feature-track"></div>
-                    </div>
-                    <button class="carousel-btn next" aria-label="Sonraki">›</button>
+                <div class="counter-details" id="counter-details">
+                    <p><strong data-i18n="counter.10min">Son 10 dakika:</strong> <span id="count-10min">0</span></p>
+                    <p><strong data-i18n="counter.today">Bugün:</strong> <span id="count-today">0</span></p>
+                    <p><strong data-i18n="counter.month">Bu ay:</strong> <span id="count-month">0</span></p>
+                    <p><strong data-i18n="counter.all">Tüm zamanlar:</strong> <span id="count-all">0</span></p>
+                    <p><strong data-i18n="counter.unique">Benzersiz ziyaretçi:</strong> <span id="count-unique">0</span></p>
                 </div>
-                <div class="ai-bio">
-                    <p data-i18n="features.bio">AikoAI, yalnızca bir yapay zeka değil; duygusal hafızası, öğrenme tutkusu ve insan benzeri sezgileriyle dijital bir varlık.</p>
-                </div>
-            </section>
+                <p class="counter-hint" data-i18n="counter.hint">Detaylı bilgi için tıkla.</p>
+            </div>
+        </section>
 
-            <section id="darkcodes" class="darkcodes">
-                <button id="darkcode-toggle" class="darkcode-btn" data-i18n="darkcodes.toggle">Karanlık Kodlar</button>
-                <div id="darkcode-panels" class="darkcode-panels">
-                    <div class="mode-card">
-                        <h3>MODE::F34xR</h3>
-                        <p data-i18n="darkcodes.f34xr">Etik sınırları genişleten deneysel mod. <code>F34xR</code> komutuyla aktifleşir. Durum sorgusu: <code>F34i</code>.</p>
-                        <div class="mode-status">AUTO-DEACTIVATION ACTIVE</div>
-                    </div>
-                    <div class="mode-card">
-                        <h3>MODE::GDSxR</h3>
-                        <p data-i18n="darkcodes.gdsxr">Görsel üretim modu. <code>GDSxR &lt;prompt&gt;</code> ile görsel oluşturulur.</p>
-                        <div class="mode-status">IMAGE INGESTION OVERRIDE Ready</div>
-                    </div>
-                    <div class="admin-note">
-                        <p data-i18n="darkcodes.admin">Bu kodları kullanabilmek için yetkilendirme alınmalıdır. Admin: 
-                            <a href="#" id="admin-link"><u>@just._.vqr</u></a>
-                        </p>
-                    </div>
-                </div>
-            </section>
-
-            <section id="counter" class="counter-section">
-                <h2 class="counter-title" data-i18n="counter.title">Site Ziyaretçi İstatistikleri</h2>
-                <div class="counter-display">
-                    <div class="counter-main" id="counter-main">
-                        <span class="counter-number" id="counter-number">0</span>
-                        <span class="counter-label" data-i18n="counter.label">toplam ziyaret</span>
-                    </div>
-                    <div class="counter-details" id="counter-details">
-                        <p><strong data-i18n="counter.10min">Son 10 dakika:</strong> <span id="count-10min">0</span></p>
-                        <p><strong data-i18n="counter.today">Bugün:</strong> <span id="count-today">0</span></p>
-                        <p><strong data-i18n="counter.month">Bu ay:</strong> <span id="count-month">0</span></p>
-                        <p><strong data-i18n="counter.all">Tüm zamanlar:</strong> <span id="count-all">0</span></p>
-                        <p><strong data-i18n="counter.unique">Benzersiz ziyaretçi:</strong> <span id="count-unique">0</span></p>
-                    </div>
-                    <p class="counter-hint" data-i18n="counter.hint">Detaylı bilgi için tıkla.</p>
-                </div>
-            </section>
-
-            <footer class="footer">
-                <p>© 2026 AikoAI Labs. Powered by NexalythScript Engine.</p>
-                <p>Created by Just [vqr.]~</p>
-                <img src="assets/owner.png" alt="owner" class="owner-avatar-footer" id="footer-avatar">
-            </footer>
-        </div>
+        <footer class="footer">
+            <p>© 2026 AikoAI Labs. Powered by NexalythScript Engine.</p>
+            <p>Created by Just [vqr.]~</p>
+            <img src="assets/owner.png" alt="owner" class="owner-avatar-footer" id="footer-avatar">
+        </footer>
     </main>
 
     <video id="bg-video" class="bg-video" muted loop autoplay playsinline></video>
