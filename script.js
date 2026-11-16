@@ -1,12 +1,17 @@
 'use strict';
 
+if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+}
+window.scrollTo(0, 0);
+
 const AIKO_CONFIG = {
     resources: [
         'assets/owner.png',
         'assets/backgroundV.mp4',
         'assets/backgroundH.mp4'
     ],
-    counterApi: 'https://countapi.mileshilliard.com/api/v1/hit/aikoai_quantum_core/visits',
+    counterApi: 'https://countapi.mileshilliard.com/api/v1/hit/aikoai_quantum_core_visits',
     ipEndpoint: 'https://ipwho.is/',
     maxRetries: 3,
     skipTimeout: 5000,
@@ -53,16 +58,13 @@ const state = {
     resourceRetryCount: 0,
     resourceFailures: [],
     fpsHistory: [],
-    bgLoadingActive: false,
-    bgLoadingDone: false,
     counterOpen: false,
     darkcodesOpen: false,
     videoElement: null,
     currentVideoSrc: '',
     isHeroExpanded: false,
     currentLang: 'tr',
-    counterFailed: false,
-    ipFailed: false
+    counterFailed: false
 };
 
 let cachedIpData = null;
@@ -86,8 +88,8 @@ const i18n = {
         'menu.perf': 'Performans Modu',
         'menu.lang': 'Dil',
         'hero.eyebrow': 'Next-Gen Quantum AI',
-        'hero.title': 'AikoAI — Canlı Zeka.',
-        'hero.subtitle': 'NexalythScript altyapısıyla geliştirilen, ShadowMemory duygusal hafızasına sahip ve kendi kararlarını verebilen yaşayan bir yapay zeka ekosistemi.',
+        'hero.title': 'AikoAI<br>Canlı Zeka.',
+        'hero.subtitle': 'NexalythScript çekirdeğiyle çalışan, ShadowMemory hafızasına sahip ve kendi kararlarını verebilen yaşayan bir yapay zeka.',
         'hero.cta': "AikoAI'ı Çalıştır",
         'hero.secondary': 'Mimariyi İncele',
         'features.title': 'Çekirdek Mimari & Yetenekler',
@@ -118,7 +120,7 @@ const i18n = {
         'menu.perf': 'Performance Mode',
         'menu.lang': 'Language',
         'hero.eyebrow': 'Next-Gen Quantum AI',
-        'hero.title': 'AikoAI — Living Intelligence.',
+        'hero.title': 'AikoAI<br>Living Intelligence.',
         'hero.subtitle': 'A living AI ecosystem built on NexalythScript, with ShadowMemory emotional recall and autonomous decision-making.',
         'hero.cta': 'Launch AikoAI',
         'hero.secondary': 'Explore Architecture',
@@ -192,7 +194,7 @@ function applyLanguage(lang) {
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
         const translation = t(key);
-        if (translation) el.textContent = translation;
+        if (translation) el.innerHTML = translation;
     });
     setStorage('aiko-lang', lang);
 }
@@ -288,7 +290,7 @@ async function checkApis() {
         const res = await fetch(AIKO_CONFIG.counterApi, { method: 'GET', cache: 'no-store' });
         if (!res.ok) throw new Error('counter HTTP ' + res.status);
         const data = await res.json();
-        state.totalVisits = (typeof data.value === 'number') ? data.value : 1;
+        state.totalVisits = (typeof data.value === 'number') ? data.value : parseInt(data.value) || 1;
         window.__aikoDiagnostics.counter = 'ok (' + state.totalVisits + ')';
         log('Counter OK: ' + state.totalVisits, 'success');
     } catch (e) {
@@ -311,7 +313,6 @@ function showErrorOverlay(message) {
     const msgEl = document.getElementById('error-message');
     if (msgEl) msgEl.textContent = message;
     if (overlay) overlay.style.display = 'flex';
-    createVHSOverlay();
 }
 
 function closeVpnWarning() {
@@ -322,14 +323,6 @@ function closeVpnWarning() {
 function showVpnWarning() {
     const overlay = document.getElementById('vpn-overlay');
     if (overlay) overlay.style.display = 'flex';
-    createVHSOverlay();
-}
-
-function createVHSOverlay() {
-    if (document.querySelector('.vhs-overlay')) return;
-    const vhs = document.createElement('div');
-    vhs.className = 'vhs-overlay';
-    document.body.appendChild(vhs);
 }
 
 function showWarningNotification(message, duration = 6000) {
@@ -613,18 +606,14 @@ function setupHeroAnimation() {
         if (scrollable <= 0) return;
         const scrolled = Math.min(Math.max(-rect.top / scrollable, 0), 1);
         const accent = document.getElementById('hero-accent');
-        const content = document.querySelector('.hero-content');
-        if (!accent || !content) return;
-        if (scrolled > 0.3 && !state.isHeroExpanded) {
+        if (!accent) return;
+        accent.style.transform = `translateX(-50%) scale(${1 + scrolled * 19})`;
+        if (scrolled > 0.7 && !state.isHeroExpanded) {
             state.isHeroExpanded = true;
             hero.classList.add('hero-accent-expanding');
-            content.style.opacity = '0';
-            content.style.transform = 'translateY(-20px)';
-        } else if (scrolled <= 0.1 && state.isHeroExpanded) {
+        } else if (scrolled <= 0.5 && state.isHeroExpanded) {
             state.isHeroExpanded = false;
             hero.classList.remove('hero-accent-expanding');
-            content.style.opacity = '1';
-            content.style.transform = 'translateY(0)';
         }
     };
     window.addEventListener('scroll', updateScroll, { passive: true });
@@ -635,7 +624,7 @@ function setupHeroAnimation() {
 function setupScrollTopButton() {
     const btn = document.createElement('button');
     btn.className = 'scroll-top-btn';
-    btn.innerHTML = '^';
+    btn.innerHTML = '↑';
     btn.setAttribute('aria-label', 'Yukarı çık');
     document.body.appendChild(btn);
     window.addEventListener('scroll', () => {
@@ -643,7 +632,12 @@ function setupScrollTopButton() {
         else btn.classList.remove('visible');
     }, { passive: true });
     btn.addEventListener('click', () => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        document.body.style.opacity = '0';
+        document.body.style.transition = 'opacity 0.4s ease';
+        setTimeout(() => {
+            window.scrollTo(0, 0);
+            document.body.style.opacity = '1';
+        }, 400);
     });
 }
 
