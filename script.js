@@ -1,24 +1,16 @@
 'use strict';
 
-if ('scrollRestoration' in history) {
-    history.scrollRestoration = 'manual';
-}
-window.scrollTo(0, 0);
-
 const AIKO_CONFIG = {
     resources: [
         'assets/owner.png',
         'assets/backgroundV.mp4',
         'assets/backgroundH.mp4'
     ],
-    counterApi: 'https://countapi.mileshilliard.com/api/v1/hit/aikoai_quantum_core_visits',
+    counterApi: 'https://countapi.mileshilliard.com/api/v1/hit/aikoai_quantum_core',
     ipEndpoint: 'https://ipwho.is/',
     maxRetries: 3,
     skipTimeout: 5000,
-    perfCheckInterval: 2000,
     perfLowFps: 20,
-    perfCheckDuration: 10000,
-    perfMinFps: 30,
     videoVertical: 'assets/backgroundV.mp4',
     videoHorizontal: 'assets/backgroundH.mp4',
     instagramAiko: 'aikoai.official',
@@ -62,7 +54,6 @@ const state = {
     darkcodesOpen: false,
     videoElement: null,
     currentVideoSrc: '',
-    isHeroExpanded: false,
     currentLang: 'tr',
     counterFailed: false
 };
@@ -87,9 +78,8 @@ const i18n = {
         'menu.counter': 'Ziyaretçi Sayacı',
         'menu.perf': 'Performans Modu',
         'menu.lang': 'Dil',
-        'hero.eyebrow': 'Next-Gen Quantum AI',
-        'hero.title': 'AikoAI<br>Canlı Zeka.',
-        'hero.subtitle': 'NexalythScript çekirdeğiyle çalışan, ShadowMemory hafızasına sahip ve kendi kararlarını verebilen yaşayan bir yapay zeka.',
+        'hero.title': 'AikoAI — Canlı Zeka.',
+        'hero.subtitle': 'NexalythScript altyapısıyla geliştirilen, ShadowMemory duygusal hafızasına sahip ve kendi kararlarını verebilen yaşayan bir yapay zeka ekosistemi.',
         'hero.cta': "AikoAI'ı Çalıştır",
         'hero.secondary': 'Mimariyi İncele',
         'features.title': 'Çekirdek Mimari & Yetenekler',
@@ -119,8 +109,7 @@ const i18n = {
         'menu.counter': 'Visitor Counter',
         'menu.perf': 'Performance Mode',
         'menu.lang': 'Language',
-        'hero.eyebrow': 'Next-Gen Quantum AI',
-        'hero.title': 'AikoAI<br>Living Intelligence.',
+        'hero.title': 'AikoAI — Living Intelligence.',
         'hero.subtitle': 'A living AI ecosystem built on NexalythScript, with ShadowMemory emotional recall and autonomous decision-making.',
         'hero.cta': 'Launch AikoAI',
         'hero.secondary': 'Explore Architecture',
@@ -194,7 +183,13 @@ function applyLanguage(lang) {
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
         const translation = t(key);
-        if (translation) el.innerHTML = translation;
+        if (translation) {
+            if (el.tagName === 'H1' && key === 'hero.title') {
+                el.innerHTML = translation.replace(' — ', '<br>');
+            } else {
+                el.textContent = translation;
+            }
+        }
     });
     setStorage('aiko-lang', lang);
 }
@@ -290,7 +285,7 @@ async function checkApis() {
         const res = await fetch(AIKO_CONFIG.counterApi, { method: 'GET', cache: 'no-store' });
         if (!res.ok) throw new Error('counter HTTP ' + res.status);
         const data = await res.json();
-        state.totalVisits = (typeof data.value === 'number') ? data.value : parseInt(data.value) || 1;
+        state.totalVisits = (typeof data.value === 'number') ? data.value : 1;
         window.__aikoDiagnostics.counter = 'ok (' + state.totalVisits + ')';
         log('Counter OK: ' + state.totalVisits, 'success');
     } catch (e) {
@@ -313,6 +308,7 @@ function showErrorOverlay(message) {
     const msgEl = document.getElementById('error-message');
     if (msgEl) msgEl.textContent = message;
     if (overlay) overlay.style.display = 'flex';
+    createVHSOverlay();
 }
 
 function closeVpnWarning() {
@@ -323,6 +319,14 @@ function closeVpnWarning() {
 function showVpnWarning() {
     const overlay = document.getElementById('vpn-overlay');
     if (overlay) overlay.style.display = 'flex';
+    createVHSOverlay();
+}
+
+function createVHSOverlay() {
+    if (document.querySelector('.vhs-overlay')) return;
+    const vhs = document.createElement('div');
+    vhs.className = 'vhs-overlay';
+    document.body.appendChild(vhs);
 }
 
 function showWarningNotification(message, duration = 6000) {
@@ -523,7 +527,7 @@ function updateCarousel() {
     });
     const track = document.getElementById('feature-track');
     if (!track || cards.length === 0) return;
-    const cardWidth = cards[0].offsetWidth + 20;
+    const cardWidth = cards[0].offsetWidth + 24;
     const viewportWidth = document.querySelector('.carousel-viewport').offsetWidth;
     const offset = -state.carouselIndex * cardWidth + (viewportWidth - cardWidth) / 2;
     track.style.transform = `translateX(${offset}px)`;
@@ -595,27 +599,32 @@ function closeMenu() {
 
 function setupHeroAnimation() {
     const hero = document.getElementById('hero');
-    const wrapper = document.getElementById('scroll-wrapper');
-    if (!hero || !wrapper) return;
+    const accent = document.getElementById('hero-accent');
+    const blackout = document.getElementById('hero-blackout');
+    const content = document.querySelector('.hero-content');
+    if (!hero || !accent || !blackout) return;
 
     const updateScroll = () => {
-        const rect = wrapper.getBoundingClientRect();
-        const wrapperHeight = wrapper.offsetHeight;
-        const viewportHeight = window.innerHeight;
-        const scrollable = wrapperHeight - viewportHeight;
-        if (scrollable <= 0) return;
-        const scrolled = Math.min(Math.max(-rect.top / scrollable, 0), 1);
-        const accent = document.getElementById('hero-accent');
-        if (!accent) return;
-        accent.style.transform = `translateX(-50%) scale(${1 + scrolled * 19})`;
-        if (scrolled > 0.7 && !state.isHeroExpanded) {
-            state.isHeroExpanded = true;
-            hero.classList.add('hero-accent-expanding');
-        } else if (scrolled <= 0.5 && state.isHeroExpanded) {
-            state.isHeroExpanded = false;
-            hero.classList.remove('hero-accent-expanding');
+        const scrollY = window.scrollY;
+        const vh = window.innerHeight;
+        const progress = Math.min(Math.max(scrollY / (vh * 0.8), 0), 1);
+
+        const scale = 1 + progress * 6;
+        accent.style.transform = `translateX(-50%) scale(${scale})`;
+        accent.style.opacity = 0.8 + progress * 0.2;
+        accent.style.borderRadius = `${100 - progress * 100}%`;
+
+        if (progress > 0.7) {
+            blackout.classList.add('active');
+        } else {
+            blackout.classList.remove('active');
+        }
+
+        if (content) {
+            content.style.opacity = 1 - Math.min(progress * 1.2, 1);
         }
     };
+
     window.addEventListener('scroll', updateScroll, { passive: true });
     window.addEventListener('resize', updateScroll);
     updateScroll();
@@ -626,17 +635,38 @@ function setupScrollTopButton() {
     btn.className = 'scroll-top-btn';
     btn.innerHTML = '↑';
     btn.setAttribute('aria-label', 'Yukarı çık');
+    btn.style.cssText = `
+        position: fixed; bottom: 30px; right: 30px;
+        width: 48px; height: 48px; border-radius: 50%;
+        background: rgba(20,20,20,0.6); backdrop-filter: blur(20px);
+        border: 1px solid rgba(255,255,255,0.15); color: #fff;
+        font-size: 20px; cursor: pointer; z-index: 50;
+        display: flex; align-items: center; justify-content: center;
+        transition: opacity 0.4s, transform 0.4s;
+        opacity: 0; pointer-events: none;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    `;
     document.body.appendChild(btn);
+
     window.addEventListener('scroll', () => {
-        if (window.scrollY > window.innerHeight) btn.classList.add('visible');
-        else btn.classList.remove('visible');
+        if (window.scrollY > window.innerHeight) {
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+        } else {
+            btn.style.opacity = '0';
+            btn.style.pointerEvents = 'none';
+        }
     }, { passive: true });
+
     btn.addEventListener('click', () => {
         document.body.style.opacity = '0';
         document.body.style.transition = 'opacity 0.4s ease';
         setTimeout(() => {
-            window.scrollTo(0, 0);
-            document.body.style.opacity = '1';
+            window.scrollTo({ top: 0, behavior: 'auto' });
+            document.getElementById('hero-blackout')?.classList.remove('active');
+            setTimeout(() => {
+                document.body.style.opacity = '1';
+            }, 100);
         }, 400);
     });
 }
@@ -903,90 +933,4 @@ function updateCounterStats() {
     if (countTodayEl) countTodayEl.textContent = todayVisits;
     if (countMonthEl) countMonthEl.textContent = monthVisits;
     if (countAllEl) countAllEl.textContent = allVisits;
-    if (countUniqueEl) countUniqueEl.textContent = uniqueVisitors;
-    if (counterNumber) counterNumber.textContent = state.totalVisits;
-}
-
-async function trackUniqueVisitor() {
-    try {
-        const ipData = await fetchIpData();
-        const ip = ipData.ip || 'unknown';
-        const visitedIPs = getStorage('aiko-visited-ips', []);
-        if (!visitedIPs.includes(ip)) {
-            visitedIPs.push(ip);
-            setStorage('aiko-visited-ips', visitedIPs);
-            state.uniqueVisitors = visitedIPs.length;
-            return true;
-        }
-        state.uniqueVisitors = visitedIPs.length;
-        return false;
-    } catch {
-        return false;
-    }
-}
-
-function setupLanguage() {
-    const langSelect = document.getElementById('lang-select');
-    if (langSelect) {
-        langSelect.value = state.currentLang;
-        langSelect.addEventListener('change', () => {
-            document.body.style.opacity = '0';
-            setTimeout(() => {
-                applyLanguage(langSelect.value);
-                document.body.style.opacity = '1';
-            }, 300);
-        });
-    }
-}
-
-function initApp() {
-    setupNavbar();
-    setupMenu();
-    setupHeroAnimation();
-    setupScrollTopButton();
-    setupPerformanceMode();
-    setupFPSMonitoring();
-    setupLinkTransitions();
-    setupPageShow();
-    setupDarkCodes();
-    setupCounterUI();
-    setupLanguage();
-    initCarousel();
-    trackUniqueVisitor();
-    recordVisit();
-    updateCounterStats();
-}
-
-async function boot() {
-    setupDiagnostics();
-    setupCopyProtection();
-    setupDebugMode();
-
-    const savedLang = getStorage('aiko-lang', null);
-    if (savedLang && AIKO_CONFIG.supportedLangs.includes(savedLang)) {
-        state.currentLang = savedLang;
-    } else {
-        const detected = await detectLanguage();
-        state.currentLang = detected;
-    }
-    applyLanguage(state.currentLang);
-
-    updateLoaderStatus(t('loader.security'), 5);
-    await delay(600);
-
-    const apisOk = await checkApis();
-    if (!apisOk) return;
-
-    updateLoaderStatus(t('loader.download'), 10);
-    await loadResources();
-
-    updateLoaderStatus(t('loader.integrity'), 92);
-    await delay(600);
-
-    updateLoaderStatus(t('loader.ready'), 100);
-    await delay(300);
-
-    finishLoading();
-}
-
-document.addEventListener('DOMContentLoaded', boot);
+    if (
